@@ -1,6 +1,8 @@
-import { LayoutDashboard, Package, ShoppingCart, Users } from "lucide-react";
+import { LayoutDashboard, Package, ShoppingCart, Users, LogOut } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { cn } from "@/lib/utils";
+import { useAuth } from "@/contexts/auth-context";
+import { Button } from "@/components/ui/button";
 
 const navigation = [
   { name: "Dashboard", href: "/", icon: LayoutDashboard },
@@ -10,6 +12,8 @@ const navigation = [
 ];
 
 export function Sidebar() {
+  const { signOut, user } = useAuth();
+
   return (
     <div className="flex h-screen w-64 flex-col border-r border-sidebar-border bg-sidebar">
       {/* Logo */}
@@ -39,16 +43,18 @@ export function Sidebar() {
       </nav>
 
       {/* Footer */}
-      <div className="border-t border-sidebar-border p-4">
-        <div className="flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-sm bg-sidebar-accent">
-            <span className="text-sm font-bold uppercase text-sidebar-foreground">A</span>
-          </div>
-          <div className="flex-1">
-            <p className="text-sm font-medium text-sidebar-foreground">Admin</p>
-            <p className="text-xs text-sidebar-foreground/60">admin@meew.com</p>
-          </div>
+      <div className="border-t border-sidebar-border p-4 space-y-3">
+        <div className="text-xs text-sidebar-foreground/60 uppercase truncate">
+          {user?.email}
         </div>
+        <Button
+          onClick={signOut}
+          variant="ghost"
+          className="w-full justify-start text-sidebar-foreground hover:bg-sidebar-accent"
+        >
+          <LogOut className="mr-3 h-5 w-5" />
+          Cerrar Sesión
+        </Button>
       </div>
     </div>
   );
