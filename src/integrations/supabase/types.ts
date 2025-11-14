@@ -447,6 +447,7 @@ export type Database = {
           id: string
           order_number: string
           paid_at: string | null
+          payment_intent_id: string | null
           payment_method: string | null
           payment_method_id: string | null
           refunded_at: string | null
@@ -485,6 +486,7 @@ export type Database = {
           id?: string
           order_number: string
           paid_at?: string | null
+          payment_intent_id?: string | null
           payment_method?: string | null
           payment_method_id?: string | null
           refunded_at?: string | null
@@ -523,6 +525,7 @@ export type Database = {
           id?: string
           order_number?: string
           paid_at?: string | null
+          payment_intent_id?: string | null
           payment_method?: string | null
           payment_method_id?: string | null
           refunded_at?: string | null
@@ -556,13 +559,6 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "orders_payment_method_id_fkey"
-            columns: ["payment_method_id"]
-            isOneToOne: false
-            referencedRelation: "payment_methods"
-            referencedColumns: ["id"]
-          },
-          {
             foreignKeyName: "orders_user_id_fkey"
             columns: ["user_id"]
             isOneToOne: false
@@ -573,53 +569,42 @@ export type Database = {
       }
       payment_methods: {
         Row: {
-          card_brand: string | null
-          card_exp_month: number | null
-          card_exp_year: number | null
-          card_last4: string | null
+          card_brand: string
           created_at: string | null
+          exp_month: number
+          exp_year: number
           id: string
           is_default: boolean | null
+          last_4: string
           stripe_payment_method_id: string
-          type: string
           updated_at: string | null
           user_id: string
         }
         Insert: {
-          card_brand?: string | null
-          card_exp_month?: number | null
-          card_exp_year?: number | null
-          card_last4?: string | null
+          card_brand: string
           created_at?: string | null
+          exp_month: number
+          exp_year: number
           id?: string
           is_default?: boolean | null
+          last_4: string
           stripe_payment_method_id: string
-          type: string
           updated_at?: string | null
           user_id: string
         }
         Update: {
-          card_brand?: string | null
-          card_exp_month?: number | null
-          card_exp_year?: number | null
-          card_last4?: string | null
+          card_brand?: string
           created_at?: string | null
+          exp_month?: number
+          exp_year?: number
           id?: string
           is_default?: boolean | null
+          last_4?: string
           stripe_payment_method_id?: string
-          type?: string
           updated_at?: string | null
           user_id?: string
         }
-        Relationships: [
-          {
-            foreignKeyName: "payment_methods_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "users"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       product_images: {
         Row: {

@@ -40,7 +40,7 @@ export default function Auth() {
       <Card className="w-full max-w-md border-2 border-black">
         <CardHeader className="space-y-4 text-center">
           <CardTitle className="text-3xl font-bold uppercase tracking-tight">
-            MEEW ADMIN
+            MERCADO MEEW ADMIN
           </CardTitle>
         </CardHeader>
         <CardContent>
