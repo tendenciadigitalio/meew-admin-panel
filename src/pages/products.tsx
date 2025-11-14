@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { Plus, Pencil, Trash2 } from "lucide-react";
+import { useState, useRef } from "react";
+import { Plus, Pencil, Trash2, Upload, Star, X, Image as ImageIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Table,
@@ -35,7 +35,12 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Product } from "@/types/database";
+import { Product, ProductWithRelations } from "@/types/database";
+import {
+  useUploadProductImage,
+  useDeleteProductImage,
+  useSetPrimaryImage,
+} from "@/hooks/use-product-images";
 
 export default function Products() {
   const { data: products, isLoading } = useProducts();
@@ -43,9 +48,13 @@ export default function Products() {
   const createProduct = useCreateProduct();
   const updateProduct = useUpdateProduct();
   const deleteProduct = useDeleteProduct();
+  const uploadImage = useUploadProductImage();
+  const deleteImage = useDeleteProductImage();
+  const setPrimary = useSetPrimaryImage();
 
   const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [editingProduct, setEditingProduct] = useState<Product | null>(null);
+  const [editingProduct, setEditingProduct] = useState<ProductWithRelations | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [formData, setFormData] = useState({
     name: "",
@@ -78,7 +87,7 @@ export default function Products() {
     setEditingProduct(null);
   };
 
-  const handleEdit = (product: Product) => {
+  const handleEdit = (product: ProductWithRelations) => {
     setEditingProduct(product);
     setFormData({
       name: product.name,
@@ -94,6 +103,28 @@ export default function Products() {
       status: product.status || "active",
     });
     setIsDialogOpen(true);
+  };
+
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!e.target.files?.[0] || !editingProduct) return;
+    
+    const file = e.target.files[0];
+    await uploadImage.mutateAsync({ productId: editingProduct.id, file });
+    
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
+  };
+
+  const handleDeleteImage = async (imageId: string) => {
+    if (confirm("¿Eliminar esta imagen?")) {
+      await deleteImage.mutateAsync(imageId);
+    }
+  };
+
+  const handleSetPrimary = async (imageId: string) => {
+    if (!editingProduct) return;
+    await setPrimary.mutateAsync({ imageId, productId: editingProduct.id });
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -193,6 +224,84 @@ export default function Products() {
                 />
               </div>
 
+              {editingProduct && (
+                <div className="space-y-3 border-2 border-border p-4">
+                  <Label className="uppercase text-sm font-bold">Imágenes</Label>
+                  
+                  {editingProduct.product_images && editingProduct.product_images.length > 0 ? (
+                    <div className="grid grid-cols-4 gap-3">
+                      {editingProduct.product_images
+                        .sort((a, b) => (a.display_order || 0) - (b.display_order || 0))
+                        .map((img) => (
+                          <div
+                            key={img.id}
+                            className="relative group border-2 border-border"
+                            style={{ borderRadius: "2px" }}
+                          >
+                            <img
+                              src={img.image_url}
+                              alt={img.alt_text || "Product"}
+                              className="w-full h-20 object-cover"
+                            />
+                            {img.is_primary && (
+                              <div className="absolute top-1 left-1 bg-primary text-primary-foreground px-1 py-0.5 text-xs uppercase">
+                                Principal
+                              </div>
+                            )}
+                            <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-1">
+                              {!img.is_primary && (
+                                <Button
+                                  type="button"
+                                  size="sm"
+                                  variant="secondary"
+                                  className="h-7 w-7 p-0"
+                                  onClick={() => handleSetPrimary(img.id)}
+                                >
+                                  <Star className="h-3 w-3" />
+                                </Button>
+                              )}
+                              <Button
+                                type="button"
+                                size="sm"
+                                variant="destructive"
+                                className="h-7 w-7 p-0"
+                                onClick={() => handleDeleteImage(img.id)}
+                              >
+                                <X className="h-3 w-3" />
+                              </Button>
+                            </div>
+                          </div>
+                        ))}
+                    </div>
+                  ) : (
+                    <div className="flex items-center justify-center border-2 border-dashed border-border p-6 text-muted-foreground">
+                      <div className="text-center">
+                        <ImageIcon className="h-8 w-8 mx-auto mb-2" />
+                        <p className="text-sm uppercase">Sin imágenes</p>
+                      </div>
+                    </div>
+                  )}
+
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/jpeg,image/png,image/webp"
+                    onChange={handleImageUpload}
+                    className="hidden"
+                  />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="w-full gap-2 uppercase border-2"
+                    onClick={() => fileInputRef.current?.click()}
+                    disabled={uploadImage.isPending}
+                  >
+                    <Upload className="h-4 w-4" />
+                    {uploadImage.isPending ? "Subiendo..." : "Subir Imagen"}
+                  </Button>
+                </div>
+              )}
+
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <Label htmlFor="regular_price" className="uppercase">Precio Regular *</Label>
@@ -282,6 +391,7 @@ export default function Products() {
         <Table>
           <TableHeader>
             <TableRow className="border-b-2">
+              <TableHead className="font-bold uppercase">Imagen</TableHead>
               <TableHead className="font-bold uppercase">Nombre</TableHead>
               <TableHead className="font-bold uppercase">Precio Regular</TableHead>
               <TableHead className="font-bold uppercase">Precio Oferta</TableHead>
@@ -293,20 +403,36 @@ export default function Products() {
           <TableBody>
             {isLoading ? (
               <TableRow>
-                <TableCell colSpan={6} className="text-center">
+                <TableCell colSpan={7} className="text-center">
                   Cargando...
                 </TableCell>
               </TableRow>
             ) : products?.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={6} className="text-center text-muted-foreground">
+                <TableCell colSpan={7} className="text-center text-muted-foreground">
                   No hay productos
                 </TableCell>
               </TableRow>
             ) : (
-              products?.map((product) => (
-                <TableRow key={product.id} className="border-b">
-                  <TableCell className="font-medium">{product.name}</TableCell>
+              products?.map((product) => {
+                const primaryImage = product.product_images?.find(img => img.is_primary);
+                return (
+                  <TableRow key={product.id} className="border-b">
+                    <TableCell>
+                      {primaryImage ? (
+                        <img
+                          src={primaryImage.image_url}
+                          alt={primaryImage.alt_text || product.name}
+                          className="w-20 h-20 object-cover border-2 border-border"
+                          style={{ borderRadius: "2px" }}
+                        />
+                      ) : (
+                        <div className="w-20 h-20 border-2 border-dashed border-border flex items-center justify-center">
+                          <ImageIcon className="h-6 w-6 text-muted-foreground" />
+                        </div>
+                      )}
+                    </TableCell>
+                    <TableCell className="font-medium">{product.name}</TableCell>
                   <TableCell>{formatCurrency(Number(product.regular_price))}</TableCell>
                   <TableCell>
                     {product.sale_price
@@ -342,7 +468,8 @@ export default function Products() {
                     </div>
                   </TableCell>
                 </TableRow>
-              ))
+                );
+              })
             )}
           </TableBody>
         </Table>
