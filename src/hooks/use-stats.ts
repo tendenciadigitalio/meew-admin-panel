@@ -15,6 +15,29 @@ export function useStats() {
         .from("users")
         .select("*", { count: "exact", head: true });
 
+      // Total de productos
+      const { count: totalProducts } = await supabase
+        .from("products")
+        .select("*", { count: "exact", head: true });
+
+      // Productos destacados
+      const { count: featuredProducts } = await supabase
+        .from("products")
+        .select("*", { count: "exact", head: true })
+        .eq("is_featured", true);
+
+      // Productos nuevos
+      const { count: newProducts } = await supabase
+        .from("products")
+        .select("*", { count: "exact", head: true })
+        .eq("is_new", true);
+
+      // Variantes con stock bajo
+      const { count: lowStockProducts } = await supabase
+        .from("product_variants")
+        .select("*", { count: "exact", head: true })
+        .lte("stock_quantity", 5);
+
       // Ingresos totales (pedidos entregados)
       const { data: deliveredOrders } = await supabase
         .from("orders")
@@ -58,6 +81,10 @@ export function useStats() {
         totalOrders: totalOrders || 0,
         totalUsers: totalUsers || 0,
         totalRevenue,
+        totalProducts: totalProducts || 0,
+        featuredProducts: featuredProducts || 0,
+        newProducts: newProducts || 0,
+        lowStockProducts: lowStockProducts || 0,
         chartData,
       };
     },
