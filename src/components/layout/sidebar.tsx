@@ -19,7 +19,7 @@ export function Sidebar() {
       {/* Logo */}
       <div className="flex h-16 items-center border-b border-sidebar-border px-6">
         <h1 className="text-xl font-bold uppercase tracking-wider text-sidebar-foreground">
-          Meew Admin
+          Mercado Meew Admin
         </h1>
       </div>
 
