@@ -1,5 +1,5 @@
 import { useState, useRef } from "react";
-import { Plus, Pencil, Trash2, Upload, Star, X, Image as ImageIcon, Palette } from "lucide-react";
+import { Plus, Pencil, Trash2, Upload, Star, X, Image as ImageIcon, Palette, Search, ImageOff, Package } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Table,
@@ -65,6 +65,11 @@ export default function Products() {
   const [editingProduct, setEditingProduct] = useState<ProductWithRelations | null>(null);
   const [activeTab, setActiveTab] = useState("info");
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Filter states
+  const [searchQuery, setSearchQuery] = useState("");
+  const [filterCategory, setFilterCategory] = useState("all");
+  const [filterStatus, setFilterStatus] = useState("all");
 
   const { data: variants } = useProductVariants(editingProduct?.id || null);
   const createVariant = useCreateVariant();
@@ -290,6 +295,20 @@ export default function Products() {
       style: "currency",
       currency: "MXN",
     }).format(value);
+  };
+
+  // Filter products
+  const filteredProducts = products?.filter((product) => {
+    const matchesSearch = product.name.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesCategory = filterCategory === "all" || product.category_id === filterCategory;
+    const matchesStatus = filterStatus === "all" || product.status === filterStatus;
+    return matchesSearch && matchesCategory && matchesStatus;
+  });
+
+  const clearFilters = () => {
+    setSearchQuery("");
+    setFilterCategory("all");
+    setFilterStatus("all");
   };
 
   return (
@@ -811,12 +830,61 @@ export default function Products() {
         </Dialog>
       </div>
 
+      {/* Filters */}
+      <div className="flex gap-4 mb-6 items-center border-2 p-4 rounded-sm">
+        <div className="flex-1 relative">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input
+            placeholder="Buscar por nombre..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="pl-10 h-10 border-2 uppercase placeholder:normal-case"
+          />
+        </div>
+
+        <div className="w-48">
+          <Label className="uppercase text-xs font-bold mb-2 block">Categoría</Label>
+          <Select value={filterCategory} onValueChange={setFilterCategory}>
+            <SelectTrigger className="h-10 border-2 uppercase">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todas</SelectItem>
+              {categories?.filter(cat => cat.is_active).map((category) => (
+                <SelectItem key={category.id} value={category.id}>
+                  {category.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div className="w-48">
+          <Label className="uppercase text-xs font-bold mb-2 block">Estado</Label>
+          <Select value={filterStatus} onValueChange={setFilterStatus}>
+            <SelectTrigger className="h-10 border-2 uppercase">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todos</SelectItem>
+              <SelectItem value="active">Activos</SelectItem>
+              <SelectItem value="inactive">Inactivos</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+
+        <Button variant="outline" onClick={clearFilters} className="h-10 uppercase">
+          Limpiar filtros
+        </Button>
+      </div>
+
       <div className="rounded-sm border-2">
         <Table>
           <TableHeader>
             <TableRow className="border-b-2">
               <TableHead className="font-bold uppercase">Imagen</TableHead>
               <TableHead className="font-bold uppercase">Nombre</TableHead>
+              <TableHead className="font-bold uppercase">Categoría</TableHead>
               <TableHead className="font-bold uppercase">Precio Regular</TableHead>
               <TableHead className="font-bold uppercase">Precio Oferta</TableHead>
               <TableHead className="font-bold uppercase">Stock</TableHead>
@@ -827,36 +895,51 @@ export default function Products() {
           <TableBody>
             {isLoading ? (
               <TableRow>
-                <TableCell colSpan={7} className="text-center">
+                <TableCell colSpan={8} className="text-center">
                   Cargando...
                 </TableCell>
               </TableRow>
-            ) : products?.length === 0 ? (
+            ) : !filteredProducts || filteredProducts.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={7} className="text-center text-muted-foreground">
-                  No hay productos
+                <TableCell colSpan={8} className="text-center text-muted-foreground">
+                  {searchQuery || filterCategory !== "all" || filterStatus !== "all" 
+                    ? "No se encontraron productos" 
+                    : "No hay productos"}
                 </TableCell>
               </TableRow>
             ) : (
-              products?.map((product) => {
+              filteredProducts.map((product) => {
                 const primaryImage = product.product_images?.find(img => img.is_primary);
+                const firstImage = product.product_images?.[0];
+                const displayImage = primaryImage || firstImage;
+                const hasVariants = product.product_variants && product.product_variants.length > 0;
+                const totalStock = hasVariants 
+                  ? product.product_variants.reduce((sum, v) => sum + (v.stock_quantity || 0), 0)
+                  : product.stock_quantity || 0;
+
                 return (
                   <TableRow key={product.id} className="border-b">
                     <TableCell>
-                      {primaryImage ? (
+                      {displayImage ? (
                         <img
-                          src={primaryImage.image_url}
-                          alt={primaryImage.alt_text || product.name}
-                          className="w-20 h-20 object-cover border-2 border-border"
-                          style={{ borderRadius: "2px" }}
+                          src={displayImage.image_url}
+                          alt={displayImage.alt_text || product.name}
+                          className="w-[60px] h-[60px] object-cover border-2 border-border rounded"
                         />
                       ) : (
-                        <div className="w-20 h-20 border-2 border-dashed border-border flex items-center justify-center">
-                          <ImageIcon className="h-6 w-6 text-muted-foreground" />
+                        <div className="w-[60px] h-[60px] border-2 border-border rounded bg-muted flex items-center justify-center">
+                          <ImageOff className="h-6 w-6 text-muted-foreground" />
                         </div>
                       )}
                     </TableCell>
                     <TableCell className="font-medium">{product.name}</TableCell>
+                    <TableCell>
+                      {product.category ? (
+                        <Badge variant="outline">{product.category.name}</Badge>
+                      ) : (
+                        <Badge variant="secondary">-</Badge>
+                      )}
+                    </TableCell>
                   <TableCell>{formatCurrency(Number(product.regular_price))}</TableCell>
                   <TableCell>
                     {product.sale_price
@@ -864,9 +947,21 @@ export default function Products() {
                       : "-"}
                   </TableCell>
                   <TableCell>
-                    <Badge variant={product.stock_quantity! > 0 ? "default" : "destructive"}>
-                      {product.stock_quantity}
-                    </Badge>
+                    {hasVariants ? (
+                      <div className="flex flex-col gap-1">
+                        <Badge variant="outline" className="gap-1">
+                          <Package className="h-3 w-3" />
+                          {product.product_variants.length} variantes
+                        </Badge>
+                        <Badge variant={totalStock > 0 ? "default" : "destructive"}>
+                          Stock: {totalStock}
+                        </Badge>
+                      </div>
+                    ) : (
+                      <Badge variant={totalStock > 0 ? "default" : "destructive"}>
+                        {totalStock}
+                      </Badge>
+                    )}
                   </TableCell>
                   <TableCell>
                     <Badge variant={product.status === "active" ? "default" : "secondary"}>
