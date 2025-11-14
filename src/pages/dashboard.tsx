@@ -1,4 +1,4 @@
-import { DollarSign, Package, ShoppingCart, Users } from "lucide-react";
+import { AlertTriangle, DollarSign, Package, ShoppingCart, Sparkles, Star, Users } from "lucide-react";
 import { StatsCard } from "@/components/shared/stats-card";
 import { useStats } from "@/hooks/use-stats";
 import { useOrders } from "@/hooks/use-orders";
@@ -50,7 +50,7 @@ export default function Dashboard() {
       </div>
 
       {/* Stats Cards */}
-      <div className="grid gap-4 md:grid-cols-3">
+      <div className="grid gap-4 md:grid-cols-4">
         <StatsCard
           title="Total Pedidos"
           value={loadingStats ? "..." : stats?.totalOrders || 0}
@@ -66,7 +66,45 @@ export default function Dashboard() {
           value={loadingStats ? "..." : formatCurrency(stats?.totalRevenue || 0)}
           icon={DollarSign}
         />
+        <StatsCard
+          title="Total Productos"
+          value={loadingStats ? "..." : stats?.totalProducts || 0}
+          icon={Package}
+        />
       </div>
+
+      {/* Product Information */}
+      <Card className="border-2">
+        <CardHeader>
+          <CardTitle className="text-xl font-bold uppercase tracking-wide">
+            Información de Productos
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid gap-4 grid-cols-1 md:grid-cols-3">
+            <Badge 
+              variant="default" 
+              className="px-4 py-2 text-sm font-bold flex items-center justify-center"
+            >
+              <Star className="h-4 w-4 mr-2" />
+              {loadingStats ? "..." : stats?.featuredProducts || 0} Productos Destacados
+            </Badge>
+            <Badge 
+              className="px-4 py-2 text-sm font-bold flex items-center justify-center bg-blue-600 text-white hover:bg-blue-700"
+            >
+              <Sparkles className="h-4 w-4 mr-2" />
+              {loadingStats ? "..." : stats?.newProducts || 0} Productos Nuevos
+            </Badge>
+            <Badge 
+              variant="destructive" 
+              className="px-4 py-2 text-sm font-bold flex items-center justify-center"
+            >
+              <AlertTriangle className="h-4 w-4 mr-2" />
+              {loadingStats ? "..." : stats?.lowStockProducts || 0} Variantes con Stock Bajo
+            </Badge>
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Sales Chart */}
       <Card className="border-2">
@@ -74,6 +112,7 @@ export default function Dashboard() {
           <CardTitle className="text-xl font-bold uppercase tracking-wide">
             Ventas Últimos 7 Días
           </CardTitle>
+          <p className="text-sm text-muted-foreground">Análisis de tendencias</p>
         </CardHeader>
         <CardContent>
           <ResponsiveContainer width="100%" height={300}>
@@ -130,8 +169,11 @@ export default function Dashboard() {
                 </TableRow>
               ) : recentOrders.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={5} className="text-center text-muted-foreground">
-                    No hay pedidos recientes
+                  <TableCell colSpan={5} className="text-center py-12">
+                    <div className="flex flex-col items-center justify-center gap-2 text-muted-foreground">
+                      <ShoppingCart className="h-12 w-12" />
+                      <p className="text-sm">No hay pedidos recientes</p>
+                    </div>
                   </TableCell>
                 </TableRow>
               ) : (
