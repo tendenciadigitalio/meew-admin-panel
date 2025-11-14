@@ -2,6 +2,9 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { ProductWithRelations } from "@/types/database";
+import { useCategories } from "./use-categories";
+
+export { useCategories };
 
 export function useProducts() {
   return useQuery({
@@ -90,18 +93,3 @@ export function useDeleteProduct() {
   });
 }
 
-export function useCategories() {
-  return useQuery({
-    queryKey: ["categories"],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("categories")
-        .select("*")
-        .eq("is_active", true)
-        .order("name");
-
-      if (error) throw error;
-      return data;
-    },
-  });
-}
