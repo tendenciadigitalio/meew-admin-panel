@@ -1,5 +1,5 @@
 import { useState, useRef } from "react";
-import { Plus, Pencil, Trash2, Upload, Star, X, Image as ImageIcon, Palette, Search, ImageOff, Package } from "lucide-react";
+import { Plus, Pencil, Trash2, Upload, Star, X, Image as ImageIcon, Palette, Search, ImageOff, Package, GripVertical } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Table,
@@ -40,6 +40,7 @@ import {
   useUploadProductImage,
   useDeleteProductImage,
   useSetPrimaryImage,
+  useReorderImages,
 } from "@/hooks/use-product-images";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
@@ -50,6 +51,7 @@ import {
   useBulkCreateVariants,
 } from "@/hooks/use-product-variants";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
+import { DragDropContext, Droppable, Draggable } from "@hello-pangea/dnd";
 
 export default function Products() {
   const { data: products, isLoading } = useProducts();
@@ -60,6 +62,7 @@ export default function Products() {
   const uploadImage = useUploadProductImage();
   const deleteImage = useDeleteProductImage();
   const setPrimary = useSetPrimaryImage();
+  const reorderImages = useReorderImages();
 
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<ProductWithRelations | null>(null);
@@ -157,14 +160,31 @@ export default function Products() {
   };
 
   const handleDeleteImage = async (imageId: string) => {
+    if (!editingProduct) return;
     if (confirm("¿Eliminar esta imagen?")) {
-      await deleteImage.mutateAsync(imageId);
+      await deleteImage.mutateAsync({ imageId, productId: editingProduct.id });
     }
   };
 
   const handleSetPrimary = async (imageId: string) => {
     if (!editingProduct) return;
     await setPrimary.mutateAsync({ imageId, productId: editingProduct.id });
+  };
+
+  const handleDragEnd = async (result: any) => {
+    if (!result.destination || !editingProduct) return;
+
+    const items = Array.from(editingProduct.product_images || []);
+    const [reorderedItem] = items.splice(result.source.index, 1);
+    items.splice(result.destination.index, 0, reorderedItem);
+
+    // Update display_order for all images
+    const updates = items.map((img, index) => ({
+      imageId: img.id,
+      newOrder: index,
+    }));
+
+    await reorderImages.mutateAsync(updates);
   };
 
   // Variant handlers
@@ -460,50 +480,91 @@ export default function Products() {
                     <Label className="uppercase text-sm font-bold">Imágenes del Producto</Label>
                     
                     {editingProduct.product_images && editingProduct.product_images.length > 0 ? (
-                      <div className="grid grid-cols-4 gap-3">
-                        {editingProduct.product_images
-                          .sort((a, b) => (a.display_order || 0) - (b.display_order || 0))
-                          .map((img) => (
-                            <div
-                              key={img.id}
-                              className="relative group border-2 border-border"
-                              style={{ borderRadius: "2px" }}
+                      <DragDropContext onDragEnd={handleDragEnd}>
+                        <Droppable droppableId="images" direction="horizontal">
+                          {(provided) => (
+                            <div 
+                              {...provided.droppableProps}
+                              ref={provided.innerRef}
+                              className="grid grid-cols-4 gap-3"
                             >
-                              <img
-                                src={img.image_url}
-                                alt={img.alt_text || "Product"}
-                                className="w-full h-20 object-cover"
-                              />
-                              {img.is_primary && (
-                                <div className="absolute top-1 left-1 bg-primary text-primary-foreground px-1 py-0.5 text-xs uppercase">
-                                  Principal
-                                </div>
-                              )}
-                              <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-1">
-                                {!img.is_primary && (
-                                  <Button
-                                    type="button"
-                                    size="sm"
-                                    variant="secondary"
-                                    className="h-7 w-7 p-0"
-                                    onClick={() => handleSetPrimary(img.id)}
-                                  >
-                                    <Star className="h-3 w-3" />
-                                  </Button>
-                                )}
-                                <Button
-                                  type="button"
-                                  size="sm"
-                                  variant="destructive"
-                                  className="h-7 w-7 p-0"
-                                  onClick={() => handleDeleteImage(img.id)}
-                                >
-                                  <X className="h-3 w-3" />
-                                </Button>
-                              </div>
+                              {editingProduct.product_images
+                                .sort((a, b) => (a.display_order || 0) - (b.display_order || 0))
+                                .map((img, index) => (
+                                  <Draggable key={img.id} draggableId={img.id} index={index}>
+                                    {(provided, snapshot) => (
+                                      <div
+                                        ref={provided.innerRef}
+                                        {...provided.draggableProps}
+                                        className={`relative group border-2 border-border ${
+                                          snapshot.isDragging ? "opacity-50" : ""
+                                        }`}
+                                        style={{ 
+                                          borderRadius: "2px",
+                                          ...provided.draggableProps.style,
+                                        }}
+                                      >
+                                        <div 
+                                          {...provided.dragHandleProps}
+                                          className="absolute top-1 right-1 cursor-move z-10 bg-background/80 rounded p-1"
+                                        >
+                                          <GripVertical className="h-4 w-4" />
+                                        </div>
+                                        
+                                        <Badge 
+                                          variant="secondary" 
+                                          className="absolute top-1 right-8 text-xs"
+                                        >
+                                          {index + 1}
+                                        </Badge>
+
+                                        <img
+                                          src={img.image_url}
+                                          alt={img.alt_text || "Product"}
+                                          className="w-full h-20 object-cover"
+                                        />
+                                        
+                                        {img.is_primary && (
+                                          <Badge 
+                                            className="absolute bottom-1 left-1 bg-green-600 text-white text-xs uppercase hover:bg-green-700"
+                                          >
+                                            <Star className="h-3 w-3 mr-1" />
+                                            Principal
+                                          </Badge>
+                                        )}
+                                        
+                                        <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-1">
+                                          {!img.is_primary && (
+                                            <Button
+                                              type="button"
+                                              size="sm"
+                                              variant="outline"
+                                              className="h-8 px-2 text-xs"
+                                              onClick={() => handleSetPrimary(img.id)}
+                                            >
+                                              <Star className="h-3 w-3 mr-1" />
+                                              Marcar
+                                            </Button>
+                                          )}
+                                          <Button
+                                            type="button"
+                                            size="sm"
+                                            variant="destructive"
+                                            className="h-7 w-7 p-0"
+                                            onClick={() => handleDeleteImage(img.id)}
+                                          >
+                                            <X className="h-3 w-3" />
+                                          </Button>
+                                        </div>
+                                      </div>
+                                    )}
+                                  </Draggable>
+                                ))}
+                              {provided.placeholder}
                             </div>
-                          ))}
-                      </div>
+                          )}
+                        </Droppable>
+                      </DragDropContext>
                     ) : (
                       <div className="flex items-center justify-center border-2 border-dashed border-border p-6 text-muted-foreground">
                         <div className="text-center">
