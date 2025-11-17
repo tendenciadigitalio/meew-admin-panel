@@ -58,11 +58,11 @@ export const useDeleteProductImage = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async (imageId: string) => {
+    mutationFn: async ({ imageId, productId }: { imageId: string; productId: string }) => {
       // Get image data first
       const { data: image } = await supabase
         .from("product_images")
-        .select("image_url")
+        .select("image_url, is_primary")
         .eq("id", imageId)
         .single();
 
@@ -87,6 +87,23 @@ export const useDeleteProductImage = () => {
         .eq("id", imageId);
 
       if (dbError) throw dbError;
+
+      // If deleted image was primary, set the next image as primary
+      if (image.is_primary) {
+        const { data: remainingImages } = await supabase
+          .from("product_images")
+          .select("id")
+          .eq("product_id", productId)
+          .order("display_order")
+          .limit(1);
+
+        if (remainingImages && remainingImages.length > 0) {
+          await supabase
+            .from("product_images")
+            .update({ is_primary: true, display_order: 0 })
+            .eq("id", remainingImages[0].id);
+        }
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["products"] });
@@ -104,7 +121,16 @@ export const useSetPrimaryImage = () => {
 
   return useMutation({
     mutationFn: async ({ imageId, productId }: { imageId: string; productId: string }) => {
-      // Set all images of this product as non-primary
+      // Get all images for this product
+      const { data: allImages } = await supabase
+        .from("product_images")
+        .select("id, display_order")
+        .eq("product_id", productId)
+        .order("display_order");
+
+      if (!allImages) throw new Error("No images found");
+
+      // Set all images as non-primary
       const { error: resetError } = await supabase
         .from("product_images")
         .update({ is_primary: false })
@@ -112,13 +138,25 @@ export const useSetPrimaryImage = () => {
 
       if (resetError) throw resetError;
 
-      // Set selected image as primary
+      // Set selected image as primary with display_order = 0
       const { error: setPrimaryError } = await supabase
         .from("product_images")
-        .update({ is_primary: true })
+        .update({ is_primary: true, display_order: 0 })
         .eq("id", imageId);
 
       if (setPrimaryError) throw setPrimaryError;
+
+      // Reorder other images (1, 2, 3...)
+      let newOrder = 1;
+      for (const img of allImages) {
+        if (img.id !== imageId) {
+          await supabase
+            .from("product_images")
+            .update({ display_order: newOrder })
+            .eq("id", img.id);
+          newOrder++;
+        }
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["products"] });
@@ -131,24 +169,28 @@ export const useSetPrimaryImage = () => {
   });
 };
 
-export const useUpdateImageOrder = () => {
+export const useReorderImages = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({ imageId, displayOrder }: { imageId: string; displayOrder: number }) => {
-      const { error } = await supabase
-        .from("product_images")
-        .update({ display_order: displayOrder })
-        .eq("id", imageId);
+    mutationFn: async (imagesWithNewOrder: { imageId: string; newOrder: number }[]) => {
+      // Update all images in batch
+      for (const { imageId, newOrder } of imagesWithNewOrder) {
+        const { error } = await supabase
+          .from("product_images")
+          .update({ display_order: newOrder })
+          .eq("id", imageId);
 
-      if (error) throw error;
+        if (error) throw error;
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["products"] });
+      toast.success("Orden actualizado");
     },
     onError: (error) => {
       console.error("Error updating image order:", error);
-      toast.error("Error al reordenar imagen");
+      toast.error("Error al reordenar imágenes");
     },
   });
 };
