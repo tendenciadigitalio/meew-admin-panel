@@ -1,5 +1,5 @@
 import { useState, useRef } from "react";
-import { Plus, Pencil, Trash2, Upload, Star, X, Image as ImageIcon, Palette, Search, ImageOff, Package, GripVertical } from "lucide-react";
+import { Plus, Pencil, Trash2, Upload, Star, X, Image as ImageIcon, Palette, Search, ImageOff, Package, GripVertical, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Table,
@@ -84,6 +84,7 @@ export default function Products() {
   const [variantDialogOpen, setVariantDialogOpen] = useState(false);
   const [bulkVariantDialogOpen, setBulkVariantDialogOpen] = useState(false);
   const [editingVariant, setEditingVariant] = useState<any | null>(null);
+  const [deleteVariantId, setDeleteVariantId] = useState<string | null>(null);
   const [variantFormData, setVariantFormData] = useState({
     size: "",
     color_name: "",
@@ -91,6 +92,8 @@ export default function Products() {
     stock_quantity: "0",
     price_override: "",
   });
+
+  const AVAILABLE_SIZES = ["XS", "S", "M", "L", "XL", "XXL", "2XL", "3XL"];
 
   // Bulk variant states
   const [selectedSizes, setSelectedSizes] = useState<string[]>([]);
@@ -211,17 +214,69 @@ export default function Products() {
     setVariantDialogOpen(true);
   };
 
+  const generateVariantSKU = (productSku: string, colorName: string, size: string) => {
+    const colorCode = colorName.substring(0, 3).toUpperCase();
+    const sizeCode = size.toUpperCase();
+    return `${productSku}-${colorCode}-${sizeCode}`;
+  };
+
+  const checkDuplicateVariant = (size: string, colorName: string, variantId?: string) => {
+    if (!variants) return false;
+    return variants.some(v => 
+      v.size === size && 
+      v.color_name === colorName && 
+      v.id !== variantId
+    );
+  };
+
   const handleSubmitVariant = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!editingProduct) return;
 
+    // Validaciones
+    const stock = parseInt(variantFormData.stock_quantity);
+    const priceOverride = variantFormData.price_override ? parseFloat(variantFormData.price_override) : null;
+
+    if (stock < 0) {
+      alert("El stock no puede ser negativo");
+      return;
+    }
+
+    if (priceOverride !== null && priceOverride < 0) {
+      alert("El precio adicional no puede ser negativo");
+      return;
+    }
+
+    if (!variantFormData.size) {
+      alert("Debe seleccionar una talla");
+      return;
+    }
+
+    // Validar duplicados
+    if (checkDuplicateVariant(
+      variantFormData.size, 
+      variantFormData.color_name,
+      editingVariant?.id
+    )) {
+      alert("Ya existe una variante con esta combinación de talla y color");
+      return;
+    }
+
+    // Generar SKU automático
+    const sku = generateVariantSKU(
+      editingProduct.sku,
+      variantFormData.color_name || "DEF",
+      variantFormData.size
+    );
+
     const variantData = {
       product_id: editingProduct.id,
+      sku,
       size: variantFormData.size || null,
       color_name: variantFormData.color_name || null,
       color_hex: variantFormData.color_hex || null,
-      stock_quantity: parseInt(variantFormData.stock_quantity) || 0,
-      price_override: variantFormData.price_override ? parseFloat(variantFormData.price_override) : null,
+      stock_quantity: stock,
+      price_override: priceOverride,
     };
 
     if (editingVariant) {
@@ -238,9 +293,20 @@ export default function Products() {
     resetVariantForm();
   };
 
-  const handleDeleteVariant = async (variantId: string) => {
-    if (!editingProduct || !confirm("¿Eliminar esta variante?")) return;
-    await deleteVariant.mutateAsync({ id: variantId, productId: editingProduct.id });
+  const handleDeleteVariant = async () => {
+    if (!editingProduct || !deleteVariantId) return;
+    
+    // No permitir eliminar si solo hay 1 variante
+    if (variants && variants.length === 1) {
+      alert("No se puede eliminar la única variante del producto");
+      return;
+    }
+
+    await deleteVariant.mutateAsync({ 
+      id: deleteVariantId, 
+      productId: editingProduct.id 
+    });
+    setDeleteVariantId(null);
   };
 
   const handleBulkCreateVariants = async () => {
@@ -627,6 +693,7 @@ export default function Products() {
                         <Table>
                           <TableHeader>
                             <TableRow className="border-b-2">
+                              <TableHead className="font-bold uppercase">SKU</TableHead>
                               <TableHead className="font-bold uppercase">Talla</TableHead>
                               <TableHead className="font-bold uppercase">Color</TableHead>
                               <TableHead className="font-bold uppercase">Stock</TableHead>
@@ -637,17 +704,21 @@ export default function Products() {
                           <TableBody>
                             {variants.map((variant) => (
                               <TableRow key={variant.id} className="border-b">
+                                <TableCell className="font-mono text-xs">
+                                  {variant.sku || "-"}
+                                </TableCell>
                                 <TableCell className="font-medium">
-                                  {variant.size || "-"}
+                                  <Badge variant="outline" className="uppercase">
+                                    {variant.size || "-"}
+                                  </Badge>
                                 </TableCell>
                                 <TableCell>
                                   <div className="flex items-center gap-2">
                                     {variant.color_hex && (
                                       <div
-                                        className="w-5 h-5 border-2 border-border"
+                                        className="w-6 h-6 border-2 border-border rounded-full"
                                         style={{ 
                                           backgroundColor: variant.color_hex,
-                                          borderRadius: "2px"
                                         }}
                                       />
                                     )}
@@ -674,7 +745,7 @@ export default function Products() {
                                     <Button
                                       variant="destructive"
                                       size="sm"
-                                      onClick={() => handleDeleteVariant(variant.id)}
+                                      onClick={() => setDeleteVariantId(variant.id)}
                                     >
                                       <Trash2 className="h-4 w-4" />
                                     </Button>
@@ -711,13 +782,20 @@ export default function Products() {
             </DialogHeader>
             <form onSubmit={handleSubmitVariant} className="space-y-4">
               <div>
-                <Label htmlFor="variant-size" className="uppercase">Talla</Label>
-                <Input
-                  id="variant-size"
-                  placeholder="Ej: XS, S, M, L, XL"
-                  value={variantFormData.size}
-                  onChange={(e) => setVariantFormData({ ...variantFormData, size: e.target.value })}
-                />
+                <Label className="uppercase mb-2 block">Talla *</Label>
+                <div className="flex flex-wrap gap-2">
+                  {AVAILABLE_SIZES.map((size) => (
+                    <Button
+                      key={size}
+                      type="button"
+                      variant={variantFormData.size === size ? "default" : "outline"}
+                      className="uppercase border-2"
+                      onClick={() => setVariantFormData({ ...variantFormData, size })}
+                    >
+                      {size}
+                    </Button>
+                  ))}
+                </div>
               </div>
 
               <div>
@@ -775,16 +853,43 @@ export default function Products() {
               </div>
 
               <div className="flex gap-2">
-                <Button type="button" variant="outline" className="flex-1 uppercase" onClick={() => setVariantDialogOpen(false)}>
+                <Button type="button" variant="outline" className="flex-1 uppercase" onClick={() => {
+                  setVariantDialogOpen(false);
+                  resetVariantForm();
+                }}>
                   Cancelar
                 </Button>
                 <Button type="submit" className="flex-1 uppercase">
-                  {editingVariant ? "Actualizar" : "Crear"} Variante
+                  {editingVariant ? "Guardar Cambios" : "Crear Variante"}
                 </Button>
               </div>
             </form>
           </DialogContent>
         </Dialog>
+
+        {/* Delete Variant Confirmation Dialog */}
+        <AlertDialog open={!!deleteVariantId} onOpenChange={() => setDeleteVariantId(null)}>
+          <AlertDialogContent className="border-2">
+            <AlertDialogHeader>
+              <AlertDialogTitle className="flex items-center gap-2 text-xl uppercase">
+                <AlertCircle className="h-5 w-5 text-destructive" />
+                Confirmar Eliminación
+              </AlertDialogTitle>
+              <AlertDialogDescription>
+                ¿Está seguro de que desea eliminar esta variante? Esta acción no se puede deshacer.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel className="uppercase border-2">Cancelar</AlertDialogCancel>
+              <AlertDialogAction
+                onClick={handleDeleteVariant}
+                className="uppercase bg-destructive hover:bg-destructive/90"
+              >
+                Eliminar
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
 
         {/* Bulk Variant Dialog */}
         <Dialog open={bulkVariantDialogOpen} onOpenChange={setBulkVariantDialogOpen}>
