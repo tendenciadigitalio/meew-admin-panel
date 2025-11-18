@@ -1,4 +1,4 @@
-import { LayoutDashboard, Package, Tag, ShoppingCart, Users, LogOut } from "lucide-react";
+import { LayoutDashboard, Package, Tag, ShoppingCart, Users, Image, LogOut } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/contexts/auth-context";
@@ -8,6 +8,7 @@ const navigation = [
   { name: "Dashboard", href: "/", icon: LayoutDashboard },
   { name: "Productos", href: "/products", icon: Package },
   { name: "Categorías", href: "/categories", icon: Tag },
+  { name: "Banners", href: "/banners", icon: Image },
   { name: "Pedidos", href: "/orders", icon: ShoppingCart },
   { name: "Usuarios", href: "/users", icon: Users },
 ];

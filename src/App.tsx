@@ -11,6 +11,7 @@ import Products from "./pages/products";
 import Categories from "./pages/categories";
 import Orders from "./pages/orders";
 import Users from "./pages/users";
+import Banners from "./pages/banners";
 import Auth from "./pages/auth";
 import NotFound from "./pages/NotFound";
 
@@ -37,6 +38,7 @@ const App = () => (
               <Route path="/categories" element={<Categories />} />
               <Route path="/orders" element={<Orders />} />
               <Route path="/users" element={<Users />} />
+              <Route path="/banners" element={<Banners />} />
             </Route>
             <Route path="*" element={<NotFound />} />
           </Routes>
