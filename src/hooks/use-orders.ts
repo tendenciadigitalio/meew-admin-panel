@@ -11,20 +11,18 @@ export function useOrders() {
         .from("orders")
         .select(`
           *,
-          user:users(id, full_name, email),
-          order_items(
-            id,
-            product_id,
-            product_name,
-            quantity,
-            unit_price,
-            subtotal
-          )
+          user:users(*),
+          order_items(*)
         `)
         .order("created_at", { ascending: false });
 
       if (error) throw error;
-      return data as OrderWithItems[];
+      
+      // Transformar datos para que coincidan con OrderWithItems
+      return (data || []).map((order: any) => ({
+        ...order,
+        user: Array.isArray(order.user) ? order.user[0] : order.user,
+      })) as OrderWithItems[];
     },
   });
 }

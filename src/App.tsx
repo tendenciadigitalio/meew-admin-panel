@@ -12,6 +12,7 @@ import Categories from "./pages/categories";
 import Orders from "./pages/orders";
 import Users from "./pages/users";
 import Banners from "./pages/banners";
+import Coupons from "./pages/coupons";
 import Auth from "./pages/auth";
 import NotFound from "./pages/NotFound";
 
@@ -39,6 +40,7 @@ const App = () => (
               <Route path="/orders" element={<Orders />} />
               <Route path="/users" element={<Users />} />
               <Route path="/banners" element={<Banners />} />
+              <Route path="/coupons" element={<Coupons />} />
             </Route>
             <Route path="*" element={<NotFound />} />
           </Routes>
