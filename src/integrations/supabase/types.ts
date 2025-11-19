@@ -155,33 +155,42 @@ export type Database = {
       }
       cart_items: {
         Row: {
-          cart_id: string
+          cart_id: string | null
+          color: string | null
           created_at: string | null
           id: string
           price_at_addition: number
           product_id: string
           quantity: number
+          size: string | null
           updated_at: string | null
+          user_id: string | null
           variant_id: string | null
         }
         Insert: {
-          cart_id: string
+          cart_id?: string | null
+          color?: string | null
           created_at?: string | null
           id?: string
           price_at_addition: number
           product_id: string
           quantity?: number
+          size?: string | null
           updated_at?: string | null
+          user_id?: string | null
           variant_id?: string | null
         }
         Update: {
-          cart_id?: string
+          cart_id?: string | null
+          color?: string | null
           created_at?: string | null
           id?: string
           price_at_addition?: number
           product_id?: string
           quantity?: number
+          size?: string | null
           updated_at?: string | null
+          user_id?: string | null
           variant_id?: string | null
         }
         Relationships: [
@@ -268,9 +277,12 @@ export type Database = {
           current_uses: number | null
           discount_type: string
           discount_value: number
+          expires_at: string | null
           id: string
           is_active: boolean | null
+          max_uses: number | null
           maximum_uses: number | null
+          min_purchase: number | null
           minimum_purchase: number | null
           updated_at: string | null
           uses_per_customer: number | null
@@ -286,9 +298,12 @@ export type Database = {
           current_uses?: number | null
           discount_type: string
           discount_value: number
+          expires_at?: string | null
           id?: string
           is_active?: boolean | null
+          max_uses?: number | null
           maximum_uses?: number | null
+          min_purchase?: number | null
           minimum_purchase?: number | null
           updated_at?: string | null
           uses_per_customer?: number | null
@@ -304,9 +319,12 @@ export type Database = {
           current_uses?: number | null
           discount_type?: string
           discount_value?: number
+          expires_at?: string | null
           id?: string
           is_active?: boolean | null
+          max_uses?: number | null
           maximum_uses?: number | null
+          min_purchase?: number | null
           minimum_purchase?: number | null
           updated_at?: string | null
           uses_per_customer?: number | null
@@ -369,7 +387,7 @@ export type Database = {
           order_id: string
           product_id: string
           product_name: string
-          product_sku: string
+          product_sku: string | null
           quantity: number
           review_submitted: boolean | null
           subtotal: number
@@ -384,7 +402,7 @@ export type Database = {
           order_id: string
           product_id: string
           product_name: string
-          product_sku: string
+          product_sku?: string | null
           quantity: number
           review_submitted?: boolean | null
           subtotal: number
@@ -399,7 +417,7 @@ export type Database = {
           order_id?: string
           product_id?: string
           product_name?: string
-          product_sku?: string
+          product_sku?: string | null
           quantity?: number
           review_submitted?: boolean | null
           subtotal?: number
@@ -601,13 +619,6 @@ export type Database = {
             columns: ["coupon_id"]
             isOneToOne: false
             referencedRelation: "coupons"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "orders_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "users"
             referencedColumns: ["id"]
           },
         ]
@@ -1243,7 +1254,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      increment_coupon_usage: {
+        Args: { coupon_id: string }
+        Returns: undefined
+      }
     }
     Enums: {
       [_ in never]: never
