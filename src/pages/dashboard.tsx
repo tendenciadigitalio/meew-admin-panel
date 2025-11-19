@@ -5,6 +5,7 @@ import { useOrders } from "@/hooks/use-orders";
 import {
   Card,
   CardContent,
+  CardDescription,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
@@ -19,12 +20,20 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 
-const statusColors: Record<string, string> = {
-  pending: "bg-warning text-warning-foreground",
-  processing: "bg-blue-600 text-white",
-  shipped: "bg-purple-600 text-white",
-  delivered: "bg-success text-success-foreground",
-  cancelled: "bg-destructive text-destructive-foreground",
+const statusVariants: Record<string, "warning" | "success" | "destructive" | "secondary"> = {
+  pending: "warning",
+  processing: "secondary",
+  shipped: "secondary",
+  delivered: "success",
+  cancelled: "destructive",
+};
+
+const statusLabels: Record<string, string> = {
+  pending: "Pendiente",
+  processing: "Procesando",
+  shipped: "Enviado",
+  delivered: "Entregado",
+  cancelled: "Cancelado",
 };
 
 export default function Dashboard() {
@@ -41,16 +50,17 @@ export default function Dashboard() {
   };
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-12">
+      {/* Page Header */}
       <div>
-        <h1 className="text-4xl font-bold uppercase tracking-tight">Dashboard</h1>
-        <p className="mt-2 text-muted-foreground">
-          Vista general de Mercado Meew
+        <h1 className="text-lg font-semibold text-gray-900 mb-1">Dashboard</h1>
+        <p className="text-sm text-gray-500">
+          Vista general de tu negocio
         </p>
       </div>
 
-      {/* Stats Cards */}
-      <div className="grid gap-4 md:grid-cols-4">
+      {/* KPI Cards */}
+      <div className="grid gap-6 md:grid-cols-4">
         <StatsCard
           title="Total Pedidos"
           value={loadingStats ? "..." : stats?.totalOrders || 0}
@@ -73,35 +83,46 @@ export default function Dashboard() {
         />
       </div>
 
-      {/* Product Information */}
-      <Card className="border-2">
+      {/* Product Stats */}
+      <Card>
         <CardHeader>
-          <CardTitle className="text-xl font-bold uppercase tracking-wide">
-            Información de Productos
-          </CardTitle>
+          <CardTitle>Información de Productos</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="grid gap-4 grid-cols-1 md:grid-cols-3">
-            <Badge 
-              variant="default" 
-              className="px-4 py-2 text-sm font-bold flex items-center justify-center"
-            >
-              <Star className="h-4 w-4 mr-2" />
-              {loadingStats ? "..." : stats?.featuredProducts || 0} Productos Destacados
-            </Badge>
-            <Badge 
-              className="px-4 py-2 text-sm font-bold flex items-center justify-center bg-blue-600 text-white hover:bg-blue-700"
-            >
-              <Sparkles className="h-4 w-4 mr-2" />
-              {loadingStats ? "..." : stats?.newProducts || 0} Productos Nuevos
-            </Badge>
-            <Badge 
-              variant="destructive" 
-              className="px-4 py-2 text-sm font-bold flex items-center justify-center"
-            >
-              <AlertTriangle className="h-4 w-4 mr-2" />
-              {loadingStats ? "..." : stats?.lowStockProducts || 0} Variantes con Stock Bajo
-            </Badge>
+            <div className="flex items-center gap-3 p-4 bg-gray-50 rounded-md">
+              <div className="p-2 bg-white rounded-md border border-gray-200">
+                <Star className="h-4 w-4 text-gray-700" />
+              </div>
+              <div>
+                <div className="text-xs text-gray-500">Destacados</div>
+                <div className="text-lg font-semibold text-gray-900">
+                  {loadingStats ? "..." : stats?.featuredProducts || 0}
+                </div>
+              </div>
+            </div>
+            <div className="flex items-center gap-3 p-4 bg-gray-50 rounded-md">
+              <div className="p-2 bg-white rounded-md border border-gray-200">
+                <Sparkles className="h-4 w-4 text-gray-700" />
+              </div>
+              <div>
+                <div className="text-xs text-gray-500">Nuevos</div>
+                <div className="text-lg font-semibold text-gray-900">
+                  {loadingStats ? "..." : stats?.newProducts || 0}
+                </div>
+              </div>
+            </div>
+            <div className="flex items-center gap-3 p-4 bg-warning-soft rounded-md">
+              <div className="p-2 bg-white rounded-md border border-warning/20">
+                <AlertTriangle className="h-4 w-4 text-warning" />
+              </div>
+              <div>
+                <div className="text-xs text-gray-500">Stock Bajo</div>
+                <div className="text-lg font-semibold text-gray-900">
+                  {loadingStats ? "..." : stats?.lowStockProducts || 0}
+                </div>
+              </div>
+            </div>
           </div>
         </CardContent>
       </Card>
@@ -143,11 +164,10 @@ export default function Dashboard() {
       </Card>
 
       {/* Recent Orders */}
-      <Card className="border-2">
+      <Card>
         <CardHeader>
-          <CardTitle className="text-xl font-bold uppercase tracking-wide">
-            Pedidos Recientes
-          </CardTitle>
+          <CardTitle>Pedidos Recientes</CardTitle>
+          <CardDescription>Últimos 5 pedidos realizados</CardDescription>
         </CardHeader>
         <CardContent>
           <Table>
@@ -187,12 +207,8 @@ export default function Dashboard() {
                       {formatCurrency(Number(order.total))}
                     </TableCell>
                     <TableCell>
-                      <Badge
-                        className={`${
-                          statusColors[order.status || "pending"]
-                        } uppercase`}
-                      >
-                        {order.status}
+                      <Badge variant={statusVariants[order.status || "pending"]}>
+                        {statusLabels[order.status || "pending"]}
                       </Badge>
                     </TableCell>
                     <TableCell>

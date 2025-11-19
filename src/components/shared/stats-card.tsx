@@ -10,17 +10,19 @@ interface StatsCardProps {
 
 export function StatsCard({ title, value, icon: Icon, description }: StatsCardProps) {
   return (
-    <Card className="border-2">
-      <CardHeader className="flex flex-row items-center justify-between pb-2">
-        <CardTitle className="text-sm font-bold uppercase tracking-wide text-muted-foreground">
-          {title}
-        </CardTitle>
-        <Icon className="h-5 w-5 text-muted-foreground" />
-      </CardHeader>
-      <CardContent>
-        <div className="text-3xl font-bold uppercase tracking-tight">{value}</div>
+    <Card className="border border-gray-200 rounded-md hover:border-gray-300 transition-colors">
+      <CardContent className="p-5">
+        <div className="flex items-start justify-between mb-3">
+          <div className="text-sm font-normal text-gray-500">
+            {title}
+          </div>
+          <Icon className="h-5 w-5 text-gray-400 stroke-[1.5]" />
+        </div>
+        <div className="text-3xl font-bold text-gray-900 tabular-nums">
+          {value}
+        </div>
         {description && (
-          <p className="mt-1 text-xs text-muted-foreground">{description}</p>
+          <p className="mt-2 text-xs text-gray-500">{description}</p>
         )}
       </CardContent>
     </Card>

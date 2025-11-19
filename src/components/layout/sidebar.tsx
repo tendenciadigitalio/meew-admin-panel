@@ -18,44 +18,50 @@ export function Sidebar() {
   const { signOut, user } = useAuth();
 
   return (
-    <div className="flex h-screen w-64 flex-col border-r border-sidebar-border bg-sidebar">
-      {/* Logo */}
-      <div className="flex h-16 items-center border-b border-sidebar-border px-6">
-        <h1 className="text-xl font-bold uppercase tracking-wider text-sidebar-foreground">
-          Mercado Meew Admin
+    <div className="flex h-screen w-[280px] flex-col bg-sidebar">
+      {/* Logo Area */}
+      <div className="flex h-20 items-center px-6 border-b border-sidebar-border">
+        <h1 className="text-base font-semibold tracking-tight text-sidebar-foreground">
+          MEEW Admin Panel
         </h1>
       </div>
 
       {/* Navigation */}
-      <nav className="flex-1 space-y-1 px-3 py-4">
+      <nav className="flex-1 space-y-1 px-4 py-6">
         {navigation.map((item) => (
           <NavLink
             key={item.name}
             to={item.href}
             end={item.href === "/"}
             className={cn(
-              "flex items-center gap-3 rounded-sm px-3 py-2.5 text-sm font-medium uppercase tracking-wide transition-colors",
-              "text-sidebar-foreground hover:bg-sidebar-accent"
+              "flex items-center gap-3 rounded-md px-4 py-3 text-sm font-medium transition-all duration-normal",
+              "text-gray-400 hover:bg-sidebar-accent hover:text-white"
             )}
-            activeClassName="bg-sidebar-accent border-l-2 border-sidebar-foreground"
+            activeClassName="bg-sidebar-active text-white border-l-3 border-white font-semibold"
           >
-            <item.icon className="h-5 w-5" />
+            <item.icon className="h-5 w-5 stroke-[1.5]" />
             <span>{item.name}</span>
           </NavLink>
         ))}
       </nav>
 
-      {/* Footer */}
-      <div className="border-t border-sidebar-border p-4 space-y-3">
-        <div className="text-xs text-sidebar-foreground/60 uppercase truncate">
-          {user?.email}
+      {/* User Footer */}
+      <div className="border-t border-sidebar-border p-4">
+        <div className="mb-3 px-2">
+          <div className="text-xs font-medium text-sidebar-foreground/90 truncate mb-0.5">
+            {user?.email?.split('@')[0]}
+          </div>
+          <div className="text-xs text-gray-400 truncate">
+            {user?.email}
+          </div>
         </div>
         <Button
           onClick={signOut}
           variant="ghost"
-          className="w-full justify-start text-sidebar-foreground hover:bg-sidebar-accent"
+          size="sm"
+          className="w-full justify-start text-gray-400 hover:bg-sidebar-accent hover:text-white transition-all"
         >
-          <LogOut className="mr-3 h-5 w-5" />
+          <LogOut className="mr-2 h-4 w-4" />
           Cerrar Sesión
         </Button>
       </div>
