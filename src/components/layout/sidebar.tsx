@@ -18,16 +18,16 @@ export function Sidebar() {
   const { signOut, user } = useAuth();
 
   return (
-    <div className="flex h-screen w-[280px] flex-col bg-sidebar">
+    <div className="fixed left-0 top-0 flex h-screen w-[280px] flex-col bg-sidebar">
       {/* Logo Area */}
-      <div className="flex h-20 items-center px-6 border-b border-sidebar-border">
+      <div className="flex h-20 items-center px-6 border-b border-sidebar-border flex-shrink-0">
         <h1 className="text-base font-semibold tracking-tight text-sidebar-foreground">
           MEEW Admin Panel
         </h1>
       </div>
 
       {/* Navigation */}
-      <nav className="flex-1 space-y-1 px-4 py-6">
+      <nav className="flex-1 space-y-1 px-4 py-6 overflow-y-auto">
         {navigation.map((item) => (
           <NavLink
             key={item.name}
@@ -46,7 +46,7 @@ export function Sidebar() {
       </nav>
 
       {/* User Footer */}
-      <div className="border-t border-sidebar-border p-4">
+      <div className="border-t border-sidebar-border p-4 flex-shrink-0">
         <div className="mb-3 px-2">
           <div className="text-xs font-medium text-sidebar-foreground/90 truncate mb-0.5">
             {user?.email?.split('@')[0]}
