@@ -662,6 +662,57 @@ export type Database = {
         }
         Relationships: []
       }
+      pop_ups: {
+        Row: {
+          created_at: string | null
+          cta_text: string | null
+          cta_type: string | null
+          cta_value: string | null
+          description: string | null
+          end_date: string | null
+          id: string
+          image_url: string | null
+          is_active: boolean | null
+          is_full_screen_image: boolean | null
+          priority: number | null
+          start_date: string | null
+          title: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          cta_text?: string | null
+          cta_type?: string | null
+          cta_value?: string | null
+          description?: string | null
+          end_date?: string | null
+          id?: string
+          image_url?: string | null
+          is_active?: boolean | null
+          is_full_screen_image?: boolean | null
+          priority?: number | null
+          start_date?: string | null
+          title?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          cta_text?: string | null
+          cta_type?: string | null
+          cta_value?: string | null
+          description?: string | null
+          end_date?: string | null
+          id?: string
+          image_url?: string | null
+          is_active?: boolean | null
+          is_full_screen_image?: boolean | null
+          priority?: number | null
+          start_date?: string | null
+          title?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       product_images: {
         Row: {
           alt_text: string | null
@@ -1133,7 +1184,7 @@ export type Database = {
           birth_date: string | null
           created_at: string | null
           email: string
-          full_name: string
+          full_name: string | null
           gender: string | null
           id: string
           language: string | null
@@ -1151,7 +1202,7 @@ export type Database = {
           birth_date?: string | null
           created_at?: string | null
           email: string
-          full_name: string
+          full_name?: string | null
           gender?: string | null
           id: string
           language?: string | null
@@ -1169,7 +1220,7 @@ export type Database = {
           birth_date?: string | null
           created_at?: string | null
           email?: string
-          full_name?: string
+          full_name?: string | null
           gender?: string | null
           id?: string
           language?: string | null

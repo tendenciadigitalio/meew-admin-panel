@@ -13,6 +13,7 @@ import Orders from "./pages/orders";
 import Users from "./pages/users";
 import Banners from "./pages/banners";
 import Coupons from "./pages/coupons";
+import PopUps from "./pages/popups";
 import Auth from "./pages/auth";
 import NotFound from "./pages/NotFound";
 
@@ -41,6 +42,7 @@ const App = () => (
               <Route path="/users" element={<Users />} />
               <Route path="/banners" element={<Banners />} />
               <Route path="/coupons" element={<Coupons />} />
+              <Route path="/popups" element={<PopUps />} />
             </Route>
             <Route path="*" element={<NotFound />} />
           </Routes>
