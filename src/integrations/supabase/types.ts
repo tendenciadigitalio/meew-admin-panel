@@ -73,6 +73,42 @@ export type Database = {
           },
         ]
       }
+      app_menu_icons: {
+        Row: {
+          active_icon_url: string | null
+          created_at: string | null
+          icon_url: string | null
+          id: string
+          is_visible: boolean | null
+          label: string
+          menu_key: string
+          order_index: number | null
+          updated_at: string | null
+        }
+        Insert: {
+          active_icon_url?: string | null
+          created_at?: string | null
+          icon_url?: string | null
+          id?: string
+          is_visible?: boolean | null
+          label: string
+          menu_key: string
+          order_index?: number | null
+          updated_at?: string | null
+        }
+        Update: {
+          active_icon_url?: string | null
+          created_at?: string | null
+          icon_url?: string | null
+          id?: string
+          is_visible?: boolean | null
+          label?: string
+          menu_key?: string
+          order_index?: number | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       banners: {
         Row: {
           created_at: string | null

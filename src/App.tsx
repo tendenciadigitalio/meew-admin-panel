@@ -14,6 +14,7 @@ import Users from "./pages/users";
 import Banners from "./pages/banners";
 import Coupons from "./pages/coupons";
 import PopUps from "./pages/popups";
+import AppMods from "./pages/app-mods";
 import Auth from "./pages/auth";
 import NotFound from "./pages/NotFound";
 
@@ -43,6 +44,7 @@ const App = () => (
               <Route path="/banners" element={<Banners />} />
               <Route path="/coupons" element={<Coupons />} />
               <Route path="/popups" element={<PopUps />} />
+              <Route path="/app-mods" element={<AppMods />} />
             </Route>
             <Route path="*" element={<NotFound />} />
           </Routes>
