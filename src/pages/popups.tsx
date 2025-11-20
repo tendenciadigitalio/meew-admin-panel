@@ -60,6 +60,8 @@ import {
   PopUp,
   PopUpFormData,
 } from "@/hooks/use-popups";
+import { useCategories } from "@/hooks/use-categories";
+import { useProducts } from "@/hooks/use-products";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
 import { toast } from "sonner";
@@ -83,6 +85,8 @@ export default function PopUpsPage() {
   });
 
   const { data: stats } = usePopUpStats();
+  const { data: categories = [] } = useCategories();
+  const { data: products = [] } = useProducts();
 
   const createMutation = useCreatePopUp();
   const updateMutation = useUpdatePopUp();
@@ -497,18 +501,55 @@ export default function PopUpsPage() {
                   {ctaType !== "none" && (
                     <div>
                       <Label htmlFor="cta_value">Valor del CTA</Label>
-                      <Input
-                        id="cta_value"
-                        name="cta_value"
-                        defaultValue={editingPopUp?.cta_value || ""}
-                        placeholder={
-                          ctaType === "category"
-                            ? "ID de categoría"
-                            : ctaType === "product"
-                            ? "ID o slug del producto"
-                            : "https://ejemplo.com"
-                        }
-                      />
+                      
+                      {ctaType === "category" && (
+                        <Select 
+                          name="cta_value" 
+                          defaultValue={editingPopUp?.cta_value || ""}
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="Seleccionar categoría" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="">Seleccionar categoría</SelectItem>
+                            {categories.map((cat) => (
+                              <SelectItem key={cat.id} value={cat.id}>
+                                {cat.name}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      )}
+
+                      {ctaType === "product" && (
+                        <Select 
+                          name="cta_value" 
+                          defaultValue={editingPopUp?.cta_value || ""}
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="Seleccionar producto" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="">Seleccionar producto</SelectItem>
+                            {products.map((prod) => (
+                              <SelectItem key={prod.id} value={prod.slug}>
+                                {prod.name}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      )}
+
+                      {ctaType === "external_url" && (
+                        <Input
+                          id="cta_value"
+                          name="cta_value"
+                          type="url"
+                          defaultValue={editingPopUp?.cta_value || ""}
+                          placeholder="https://ejemplo.com/ofertas"
+                          required
+                        />
+                      )}
                     </div>
                   )}
                 </div>
