@@ -505,13 +505,12 @@ export default function PopUpsPage() {
                       {ctaType === "category" && (
                         <Select 
                           name="cta_value" 
-                          defaultValue={editingPopUp?.cta_value || ""}
+                          defaultValue={editingPopUp?.cta_value || undefined}
                         >
                           <SelectTrigger>
                             <SelectValue placeholder="Seleccionar categoría" />
                           </SelectTrigger>
                           <SelectContent>
-                            <SelectItem value="">Seleccionar categoría</SelectItem>
                             {categories.map((cat) => (
                               <SelectItem key={cat.id} value={cat.id}>
                                 {cat.name}
@@ -524,13 +523,12 @@ export default function PopUpsPage() {
                       {ctaType === "product" && (
                         <Select 
                           name="cta_value" 
-                          defaultValue={editingPopUp?.cta_value || ""}
+                          defaultValue={editingPopUp?.cta_value || undefined}
                         >
                           <SelectTrigger>
                             <SelectValue placeholder="Seleccionar producto" />
                           </SelectTrigger>
                           <SelectContent>
-                            <SelectItem value="">Seleccionar producto</SelectItem>
                             {products.map((prod) => (
                               <SelectItem key={prod.id} value={prod.slug}>
                                 {prod.name}
