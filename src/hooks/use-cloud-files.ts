@@ -55,9 +55,12 @@ export function useUploadFile() {
 
   return useMutation({
     mutationFn: async ({ file, category, saveToDatabase }: UploadFileParams) => {
-      const fileExt = file.name.split(".").pop();
-      const fileName = `${Date.now()}-${file.name}`;
+      // Sanitize filename - remove special characters and spaces
+      const sanitizedName = file.name.replace(/[^a-zA-Z0-9.-]/g, '_');
+      const fileName = `${Date.now()}-${sanitizedName}`;
       const filePath = `uploads/${category}/${fileName}`;
+
+      console.log('Uploading to path:', filePath); // Debug
 
       // Upload to storage
       const { error: uploadError } = await supabase.storage
