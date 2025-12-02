@@ -7,6 +7,9 @@ export type User = Tables<"users">;
 export type Category = Tables<"categories">;
 export type ProductVariant = Tables<"product_variants">;
 export type ProductImage = Tables<"product_images">;
+export type Shipment = Tables<"shipments">;
+export type ShipmentEvent = Tables<"shipment_events">;
+export type FreeShippingDate = Tables<"free_shipping_dates">;
 
 export type OrderWithItems = Order & {
   order_items: OrderItem[];

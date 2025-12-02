@@ -372,6 +372,42 @@ export type Database = {
         }
         Relationships: []
       }
+      free_shipping_dates: {
+        Row: {
+          created_at: string | null
+          description: string | null
+          end_date: string
+          id: string
+          is_active: boolean | null
+          min_amount: number | null
+          name: string
+          start_date: string
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          description?: string | null
+          end_date: string
+          id?: string
+          is_active?: boolean | null
+          min_amount?: number | null
+          name: string
+          start_date: string
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          description?: string | null
+          end_date?: string
+          id?: string
+          is_active?: boolean | null
+          min_amount?: number | null
+          name?: string
+          start_date?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       meew_cloud_files: {
         Row: {
           category: string | null
@@ -1253,6 +1289,106 @@ export type Database = {
           },
         ]
       }
+      shipment_events: {
+        Row: {
+          created_at: string | null
+          description: string | null
+          id: string
+          location: string | null
+          shipment_id: string | null
+          status: string
+        }
+        Insert: {
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          location?: string | null
+          shipment_id?: string | null
+          status: string
+        }
+        Update: {
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          location?: string | null
+          shipment_id?: string | null
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "shipment_events_shipment_id_fkey"
+            columns: ["shipment_id"]
+            isOneToOne: false
+            referencedRelation: "shipments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      shipments: {
+        Row: {
+          carrier: string | null
+          created_at: string | null
+          delivered_at: string | null
+          estimated_delivery: string | null
+          id: string
+          label_url: string | null
+          order_id: string | null
+          problem_notes: string | null
+          problem_type: string | null
+          shipped_at: string | null
+          shipping_cost: number
+          shipping_method: string
+          status: string
+          tracking_number: string | null
+          updated_at: string | null
+          warehouse: string | null
+        }
+        Insert: {
+          carrier?: string | null
+          created_at?: string | null
+          delivered_at?: string | null
+          estimated_delivery?: string | null
+          id?: string
+          label_url?: string | null
+          order_id?: string | null
+          problem_notes?: string | null
+          problem_type?: string | null
+          shipped_at?: string | null
+          shipping_cost?: number
+          shipping_method: string
+          status?: string
+          tracking_number?: string | null
+          updated_at?: string | null
+          warehouse?: string | null
+        }
+        Update: {
+          carrier?: string | null
+          created_at?: string | null
+          delivered_at?: string | null
+          estimated_delivery?: string | null
+          id?: string
+          label_url?: string | null
+          order_id?: string | null
+          problem_notes?: string | null
+          problem_type?: string | null
+          shipped_at?: string | null
+          shipping_cost?: number
+          shipping_method?: string
+          status?: string
+          tracking_number?: string | null
+          updated_at?: string | null
+          warehouse?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "shipments_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       users: {
         Row: {
           avatar_url: string | null
@@ -1383,6 +1519,10 @@ export type Database = {
       increment_coupon_usage: {
         Args: { coupon_id: string }
         Returns: undefined
+      }
+      is_free_shipping_active: {
+        Args: { cart_total: number }
+        Returns: boolean
       }
     }
     Enums: {
