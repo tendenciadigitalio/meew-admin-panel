@@ -30,12 +30,17 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
-import { Pencil, Trash2, Plus } from "lucide-react";
+import { Pencil, Trash2, Plus, ChevronUp, ChevronDown, ImageIcon, X, Star } from "lucide-react";
+import { toast } from "sonner";
 import {
   useCategories,
   useCreateCategory,
   useUpdateCategory,
   useDeleteCategory,
+  useToggleFeaturedCategory,
+  useUpdateCategoryOrder,
+  useUploadCategoryImage,
+  CategoryWithCount,
 } from "@/hooks/use-categories";
 
 const Categories = () => {
@@ -43,17 +48,26 @@ const Categories = () => {
   const createCategory = useCreateCategory();
   const updateCategory = useUpdateCategory();
   const deleteCategory = useDeleteCategory();
+  const toggleFeatured = useToggleFeaturedCategory();
+  const updateOrder = useUpdateCategoryOrder();
+  const uploadImage = useUploadCategoryImage();
 
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
-  const [editingCategory, setEditingCategory] = useState<any>(null);
+  const [editingCategory, setEditingCategory] = useState<CategoryWithCount | null>(null);
   const [deleteId, setDeleteId] = useState<string | null>(null);
+
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
 
   const [formData, setFormData] = useState({
     name: "",
     description: "",
     slug: "",
     is_active: true,
+    is_featured: false,
+    display_order: null as number | null,
+    image_url: null as string | null,
   });
 
   useEffect(() => {
@@ -63,7 +77,11 @@ const Categories = () => {
         description: editingCategory.description || "",
         slug: editingCategory.slug || "",
         is_active: editingCategory.is_active ?? true,
+        is_featured: editingCategory.is_featured ?? false,
+        display_order: editingCategory.display_order ?? null,
+        image_url: editingCategory.image_url || null,
       });
+      setImagePreview(editingCategory.image_url || null);
     }
   }, [editingCategory]);
 
@@ -84,6 +102,29 @@ const Categories = () => {
     }));
   };
 
+  const handleImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error("La imagen no debe superar los 5MB");
+      return;
+    }
+
+    if (!["image/jpeg", "image/png", "image/webp"].includes(file.type)) {
+      toast.error("Solo se permiten imágenes JPG, PNG o WebP");
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setImagePreview(reader.result as string);
+    };
+    reader.readAsDataURL(file);
+
+    setImageFile(file);
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -91,30 +132,59 @@ const Categories = () => {
       return;
     }
 
-    if (editingCategory) {
-      await updateCategory.mutateAsync({
-        id: editingCategory.id,
-        updates: formData,
-      });
-    } else {
-      await createCategory.mutateAsync(formData);
-    }
+    try {
+      let imageUrl = formData.image_url;
 
-    handleCloseDialog();
+      if (imageFile) {
+        const categoryId = editingCategory?.id || crypto.randomUUID();
+        imageUrl = await uploadImage.mutateAsync({
+          categoryId,
+          file: imageFile,
+        });
+      }
+
+      const dataToSave = {
+        name: formData.name,
+        description: formData.description,
+        slug: formData.slug,
+        is_active: formData.is_active,
+        is_featured: formData.is_featured,
+        display_order: formData.display_order,
+        image_url: imageUrl,
+      };
+
+      if (editingCategory) {
+        await updateCategory.mutateAsync({
+          id: editingCategory.id,
+          updates: dataToSave,
+        });
+      } else {
+        await createCategory.mutateAsync(dataToSave);
+      }
+
+      handleCloseDialog();
+    } catch (error) {
+      console.error("Error:", error);
+    }
   };
 
   const handleCloseDialog = () => {
     setIsDialogOpen(false);
     setEditingCategory(null);
+    setImageFile(null);
+    setImagePreview(null);
     setFormData({
       name: "",
       description: "",
       slug: "",
       is_active: true,
+      is_featured: false,
+      display_order: null,
+      image_url: null,
     });
   };
 
-  const handleEdit = (category: any) => {
+  const handleEdit = (category: CategoryWithCount) => {
     setEditingCategory(category);
     setIsDialogOpen(true);
   };
@@ -130,6 +200,40 @@ const Categories = () => {
       setIsDeleteDialogOpen(false);
       setDeleteId(null);
     }
+  };
+
+  const handleMoveUp = async (category: CategoryWithCount, index: number) => {
+    if (index === 0 || !categories) return;
+
+    const previousCategory = categories[index - 1];
+
+    await Promise.all([
+      updateOrder.mutateAsync({
+        id: category.id,
+        newOrder: previousCategory.display_order ?? index - 1,
+      }),
+      updateOrder.mutateAsync({
+        id: previousCategory.id,
+        newOrder: category.display_order ?? index,
+      }),
+    ]);
+  };
+
+  const handleMoveDown = async (category: CategoryWithCount, index: number) => {
+    if (!categories || index === categories.length - 1) return;
+
+    const nextCategory = categories[index + 1];
+
+    await Promise.all([
+      updateOrder.mutateAsync({
+        id: category.id,
+        newOrder: nextCategory.display_order ?? index + 1,
+      }),
+      updateOrder.mutateAsync({
+        id: nextCategory.id,
+        newOrder: category.display_order ?? index,
+      }),
+    ]);
   };
 
   if (isLoading) {
@@ -155,26 +259,32 @@ const Categories = () => {
         </Button>
       </div>
 
-      <div className="border-2 border-border rounded-sm">
+      <div className="border-2 border-border rounded-sm overflow-x-auto">
         <Table>
           <TableHeader>
             <TableRow className="border-b-2 border-border">
+              <TableHead className="uppercase tracking-wide font-bold w-16">
+                Imagen
+              </TableHead>
               <TableHead className="uppercase tracking-wide font-bold">
                 Nombre
               </TableHead>
-              <TableHead className="uppercase tracking-wide font-bold">
+              <TableHead className="uppercase tracking-wide font-bold hidden md:table-cell">
                 Descripción
               </TableHead>
-              <TableHead className="uppercase tracking-wide font-bold">
-                Slug
+              <TableHead className="uppercase tracking-wide font-bold text-center w-28">
+                Destacada
               </TableHead>
-              <TableHead className="uppercase tracking-wide font-bold text-center">
+              <TableHead className="uppercase tracking-wide font-bold text-center w-32">
+                Orden
+              </TableHead>
+              <TableHead className="uppercase tracking-wide font-bold text-center w-24">
                 Productos
               </TableHead>
-              <TableHead className="uppercase tracking-wide font-bold text-center">
+              <TableHead className="uppercase tracking-wide font-bold text-center w-24">
                 Estado
               </TableHead>
-              <TableHead className="uppercase tracking-wide font-bold text-right">
+              <TableHead className="uppercase tracking-wide font-bold text-right w-32">
                 Acciones
               </TableHead>
             </TableRow>
@@ -182,23 +292,89 @@ const Categories = () => {
           <TableBody>
             {categories.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
+                <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
                   No hay categorías registradas
                 </TableCell>
               </TableRow>
             ) : (
-              categories.map((category) => (
+              categories.map((category, index) => (
                 <TableRow key={category.id} className="border-b border-border">
-                  <TableCell className="font-medium">{category.name}</TableCell>
-                  <TableCell className="max-w-md truncate">
+                  {/* Columna de imagen */}
+                  <TableCell>
+                    {category.image_url ? (
+                      <img 
+                        src={category.image_url} 
+                        alt={category.name}
+                        className="w-12 h-12 object-cover rounded border-2 border-border"
+                      />
+                    ) : (
+                      <div className="w-12 h-12 bg-muted rounded flex items-center justify-center border-2 border-border">
+                        <ImageIcon className="h-6 w-6 text-muted-foreground" />
+                      </div>
+                    )}
+                  </TableCell>
+
+                  {/* Nombre */}
+                  <TableCell className="font-medium">
+                    <div className="flex items-center gap-2">
+                      {category.name}
+                      {category.is_featured && (
+                        <Star className="h-4 w-4 text-yellow-500 fill-yellow-500" />
+                      )}
+                    </div>
+                  </TableCell>
+
+                  {/* Descripción */}
+                  <TableCell className="max-w-md truncate hidden md:table-cell">
                     {category.description || "-"}
                   </TableCell>
-                  <TableCell className="font-mono text-sm text-muted-foreground">
-                    {category.slug}
+
+                  {/* Switch Destacada */}
+                  <TableCell className="text-center">
+                    <Switch
+                      checked={category.is_featured || false}
+                      onCheckedChange={(checked) =>
+                        toggleFeatured.mutate({
+                          id: category.id,
+                          is_featured: checked
+                        })
+                      }
+                    />
                   </TableCell>
+
+                  {/* Orden con botones arriba/abajo */}
+                  <TableCell className="text-center">
+                    <div className="flex items-center justify-center gap-1">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-7 w-7"
+                        onClick={() => handleMoveUp(category, index)}
+                        disabled={index === 0}
+                      >
+                        <ChevronUp className="h-4 w-4" />
+                      </Button>
+                      <span className="text-sm font-mono min-w-[2ch]">
+                        {category.display_order ?? "-"}
+                      </span>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-7 w-7"
+                        onClick={() => handleMoveDown(category, index)}
+                        disabled={index === categories.length - 1}
+                      >
+                        <ChevronDown className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </TableCell>
+
+                  {/* Productos */}
                   <TableCell className="text-center">
                     <Badge variant="outline">{category.product_count}</Badge>
                   </TableCell>
+
+                  {/* Estado */}
                   <TableCell className="text-center">
                     <Badge
                       variant={category.is_active ? "default" : "secondary"}
@@ -206,6 +382,8 @@ const Categories = () => {
                       {category.is_active ? "Activa" : "Inactiva"}
                     </Badge>
                   </TableCell>
+
+                  {/* Acciones */}
                   <TableCell className="text-right">
                     <div className="flex justify-end gap-2">
                       <Button
@@ -289,6 +467,90 @@ const Categories = () => {
               />
             </div>
 
+            {/* Campo de imagen */}
+            <div className="space-y-2">
+              <Label htmlFor="image" className="uppercase tracking-wide text-xs">
+                Imagen de Categoría
+              </Label>
+
+              {imagePreview && (
+                <div className="relative w-full h-48 border-2 border-border rounded-sm overflow-hidden">
+                  <img
+                    src={imagePreview}
+                    alt="Preview"
+                    className="w-full h-full object-cover"
+                  />
+                  <Button
+                    type="button"
+                    variant="destructive"
+                    size="icon"
+                    className="absolute top-2 right-2"
+                    onClick={() => {
+                      setImagePreview(null);
+                      setImageFile(null);
+                      setFormData((prev) => ({ ...prev, image_url: null }));
+                    }}
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                </div>
+              )}
+
+              <Input
+                id="image"
+                type="file"
+                accept="image/jpeg,image/png,image/webp"
+                onChange={handleImageChange}
+                className="border-2"
+              />
+              <p className="text-xs text-muted-foreground">
+                Formatos: JPG, PNG, WebP. Máximo 5MB. Recomendado: 800x600px
+              </p>
+            </div>
+
+            {/* Switch destacada */}
+            <div className="flex items-center justify-between py-2">
+              <Label htmlFor="is_featured" className="uppercase tracking-wide text-xs">
+                Categoría Destacada
+              </Label>
+              <div className="flex items-center gap-3">
+                <span className="text-sm text-muted-foreground">
+                  {formData.is_featured ? "Sí" : "No"}
+                </span>
+                <Switch
+                  id="is_featured"
+                  checked={formData.is_featured || false}
+                  onCheckedChange={(checked) =>
+                    setFormData((prev) => ({ ...prev, is_featured: checked }))
+                  }
+                />
+              </div>
+            </div>
+
+            {/* Campo display_order */}
+            <div className="space-y-2">
+              <Label htmlFor="display_order" className="uppercase tracking-wide text-xs">
+                Orden de Visualización
+              </Label>
+              <Input
+                id="display_order"
+                type="number"
+                min="0"
+                value={formData.display_order ?? ""}
+                onChange={(e) =>
+                  setFormData((prev) => ({
+                    ...prev,
+                    display_order: e.target.value ? parseInt(e.target.value) : null
+                  }))
+                }
+                className="border-2"
+                placeholder="0, 1, 2..."
+              />
+              <p className="text-xs text-muted-foreground">
+                Menor número = mayor prioridad en el carrusel
+              </p>
+            </div>
+
             <div className="flex items-center justify-between py-2">
               <Label htmlFor="is_active" className="uppercase tracking-wide text-xs">
                 Estado
@@ -319,7 +581,7 @@ const Categories = () => {
               <Button
                 type="submit"
                 disabled={
-                  createCategory.isPending || updateCategory.isPending
+                  createCategory.isPending || updateCategory.isPending || uploadImage.isPending
                 }
                 className="uppercase tracking-wide"
               >
