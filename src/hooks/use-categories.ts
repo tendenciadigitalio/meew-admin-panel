@@ -17,6 +17,7 @@ export function useCategories() {
           *,
           products(count)
         `)
+        .order("display_order", { ascending: true, nullsFirst: false })
         .order("name");
 
       if (error) throw error;
@@ -37,7 +38,10 @@ export function useCreateCategory() {
       name: string; 
       description?: string; 
       slug: string; 
-      is_active: boolean 
+      is_active: boolean;
+      is_featured?: boolean;
+      display_order?: number | null;
+      image_url?: string | null;
     }) => {
       // Verificar si el slug ya existe
       const { data: existing, error: checkError } = await supabase
@@ -146,6 +150,89 @@ export function useDeleteCategory() {
     },
     onError: (error: any) => {
       toast.error(`Error: ${error.message}`);
+    },
+  });
+}
+
+export function useToggleFeaturedCategory() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ id, is_featured }: { id: string; is_featured: boolean }) => {
+      const { error } = await supabase
+        .from("categories")
+        .update({ is_featured })
+        .eq("id", id);
+
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["categories"] });
+      toast.success("Estado destacado actualizado");
+    },
+    onError: () => {
+      toast.error("Error al actualizar");
+    },
+  });
+}
+
+export function useUpdateCategoryOrder() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ id, newOrder }: { id: string; newOrder: number }) => {
+      const { error } = await supabase
+        .from("categories")
+        .update({ display_order: newOrder })
+        .eq("id", id);
+
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["categories"] });
+    },
+  });
+}
+
+export function useUploadCategoryImage() {
+  return useMutation({
+    mutationFn: async ({ categoryId, file }: { categoryId: string; file: File }) => {
+      const fileExt = file.name.split(".").pop();
+      const fileName = `categories/${categoryId}/${Date.now()}.${fileExt}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from("category_images")
+        .upload(fileName, file);
+
+      if (uploadError) throw uploadError;
+
+      const { data: { publicUrl } } = supabase.storage
+        .from("category_images")
+        .getPublicUrl(fileName);
+
+      return publicUrl;
+    },
+    onError: () => {
+      toast.error("Error al subir imagen");
+    },
+  });
+}
+
+export function useUpdateCategoryImage() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ id, image_url }: { id: string; image_url: string }) => {
+      const { error } = await supabase
+        .from("categories")
+        .update({ image_url })
+        .eq("id", id);
+
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["categories"] });
+      toast.success("Imagen actualizada");
     },
   });
 }
