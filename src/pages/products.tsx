@@ -107,12 +107,16 @@ export default function Products() {
     sale_price: "",
     stock_quantity: "",
     category_id: "",
+    gender: "unisex",
     brand: "",
     sku: "",
     slug: "",
     is_featured: false,
     status: "active",
   });
+
+  // Filter state for gender
+  const [filterGender, setFilterGender] = useState("all");
 
   const resetForm = () => {
     setFormData({
@@ -122,6 +126,7 @@ export default function Products() {
       sale_price: "",
       stock_quantity: "",
       category_id: "",
+      gender: "unisex",
       brand: "",
       sku: "",
       slug: "",
@@ -141,6 +146,7 @@ export default function Products() {
       sale_price: product.sale_price?.toString() || "",
       stock_quantity: product.stock_quantity?.toString() || "0",
       category_id: product.category_id || "",
+      gender: product.gender || "unisex",
       brand: product.brand || "",
       sku: product.sku,
       slug: product.slug,
@@ -347,6 +353,7 @@ export default function Products() {
       sale_price: formData.sale_price ? parseFloat(formData.sale_price) : null,
       stock_quantity: parseInt(formData.stock_quantity) || 0,
       category_id: formData.category_id || null,
+      gender: formData.gender,
       brand: formData.brand || null,
       sku,
       slug,
@@ -388,13 +395,35 @@ export default function Products() {
     const matchesSearch = product.name.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesCategory = filterCategory === "all" || product.category_id === filterCategory;
     const matchesStatus = filterStatus === "all" || product.status === filterStatus;
-    return matchesSearch && matchesCategory && matchesStatus;
+    const matchesGender = filterGender === "all" || product.gender === filterGender;
+    return matchesSearch && matchesCategory && matchesStatus && matchesGender;
   });
 
   const clearFilters = () => {
     setSearchQuery("");
     setFilterCategory("all");
     setFilterStatus("all");
+    setFilterGender("all");
+  };
+
+  const getGenderLabel = (gender: string | null) => {
+    switch (gender) {
+      case "mujer": return "Mujer";
+      case "hombre": return "Hombre";
+      case "kids": return "Kids";
+      case "unisex": return "Unisex";
+      default: return "—";
+    }
+  };
+
+  const getGenderBadgeColor = (gender: string | null) => {
+    switch (gender) {
+      case "mujer": return "bg-pink-100 text-pink-800 border-pink-200";
+      case "hombre": return "bg-blue-100 text-blue-800 border-blue-200";
+      case "kids": return "bg-yellow-100 text-yellow-800 border-yellow-200";
+      case "unisex": return "bg-gray-100 text-gray-800 border-gray-200";
+      default: return "bg-gray-100 text-gray-600 border-gray-200";
+    }
   };
 
   return (
@@ -502,23 +531,43 @@ export default function Products() {
                     </div>
                   </div>
 
-                  <div>
-                    <Label htmlFor="category" className="uppercase">Categoría</Label>
-                    <Select
-                      value={formData.category_id}
-                      onValueChange={(value) => setFormData({ ...formData, category_id: value })}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Selecciona una categoría" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {categories?.map((category) => (
-                          <SelectItem key={category.id} value={category.id}>
-                            {category.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <Label htmlFor="category" className="uppercase">Categoría</Label>
+                      <Select
+                        value={formData.category_id}
+                        onValueChange={(value) => setFormData({ ...formData, category_id: value })}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Selecciona una categoría" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {categories?.map((category) => (
+                            <SelectItem key={category.id} value={category.id}>
+                              {category.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    <div>
+                      <Label htmlFor="gender" className="uppercase">Género *</Label>
+                      <Select
+                        value={formData.gender}
+                        onValueChange={(value) => setFormData({ ...formData, gender: value })}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Selecciona género" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="mujer">Mujer</SelectItem>
+                          <SelectItem value="hombre">Hombre</SelectItem>
+                          <SelectItem value="kids">Kids</SelectItem>
+                          <SelectItem value="unisex">Unisex</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
                   </div>
 
                   <div className="flex items-center gap-2">
@@ -1039,6 +1088,22 @@ export default function Products() {
           </Select>
         </div>
 
+        <div className="w-40">
+          <Label className="uppercase text-xs font-bold mb-2 block">Género</Label>
+          <Select value={filterGender} onValueChange={setFilterGender}>
+            <SelectTrigger className="h-10 border-2 uppercase">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todos</SelectItem>
+              <SelectItem value="mujer">Mujer</SelectItem>
+              <SelectItem value="hombre">Hombre</SelectItem>
+              <SelectItem value="kids">Kids</SelectItem>
+              <SelectItem value="unisex">Unisex</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+
         <Button variant="outline" onClick={clearFilters} className="h-10 uppercase">
           Limpiar filtros
         </Button>
@@ -1051,6 +1116,7 @@ export default function Products() {
               <TableHead className="font-bold uppercase">Imagen</TableHead>
               <TableHead className="font-bold uppercase">Nombre</TableHead>
               <TableHead className="font-bold uppercase">Categoría</TableHead>
+              <TableHead className="font-bold uppercase">Género</TableHead>
               <TableHead className="font-bold uppercase">Precio Regular</TableHead>
               <TableHead className="font-bold uppercase">Precio Oferta</TableHead>
               <TableHead className="font-bold uppercase">Stock</TableHead>
@@ -1061,14 +1127,14 @@ export default function Products() {
           <TableBody>
             {isLoading ? (
               <TableRow>
-                <TableCell colSpan={8} className="text-center">
+                <TableCell colSpan={9} className="text-center">
                   Cargando...
                 </TableCell>
               </TableRow>
             ) : !filteredProducts || filteredProducts.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={8} className="text-center text-muted-foreground">
-                  {searchQuery || filterCategory !== "all" || filterStatus !== "all" 
+                <TableCell colSpan={9} className="text-center text-muted-foreground">
+                  {searchQuery || filterCategory !== "all" || filterStatus !== "all" || filterGender !== "all"
                     ? "No se encontraron productos" 
                     : "No hay productos"}
                 </TableCell>
@@ -1105,6 +1171,14 @@ export default function Products() {
                       ) : (
                         <Badge variant="secondary">-</Badge>
                       )}
+                    </TableCell>
+                    <TableCell>
+                      <Badge 
+                        variant="outline" 
+                        className={`uppercase text-xs ${getGenderBadgeColor(product.gender)}`}
+                      >
+                        {getGenderLabel(product.gender)}
+                      </Badge>
                     </TableCell>
                   <TableCell>{formatCurrency(Number(product.regular_price))}</TableCell>
                   <TableCell>
