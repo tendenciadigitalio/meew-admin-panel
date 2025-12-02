@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
 import {
@@ -825,31 +825,8 @@ function FreeDateDialog({
   const createFreeDate = useCreateFreeShippingDate();
   const updateFreeDate = useUpdateFreeShippingDate();
 
-  // Reset form when dialog opens/closes or editing changes
-  useState(() => {
-    if (editingDate) {
-      setFormData({
-        name: editingDate.name,
-        description: editingDate.description || "",
-        start_date: editingDate.start_date,
-        end_date: editingDate.end_date,
-        min_amount: editingDate.min_amount || 0,
-        is_active: editingDate.is_active ?? true,
-      });
-    } else {
-      setFormData({
-        name: "",
-        description: "",
-        start_date: "",
-        end_date: "",
-        min_amount: 0,
-        is_active: true,
-      });
-    }
-  });
-
-  // Update form when editingDate changes
-  useMemo(() => {
+  // Reset form when dialog opens or editingDate changes
+  useEffect(() => {
     if (open) {
       if (editingDate) {
         setFormData({
