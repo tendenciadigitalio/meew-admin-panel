@@ -1,4 +1,4 @@
-import { LayoutDashboard, Package, Tag, ShoppingCart, Users, Image, LogOut, Ticket, MessageSquare, Smartphone, Truck } from "lucide-react";
+import { LayoutDashboard, Package, Tag, ShoppingCart, Users, Image, LogOut, Ticket, MessageSquare, Smartphone, Truck, Bell } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/contexts/auth-context";
@@ -11,6 +11,7 @@ const navigation = [
   { name: "Banners", href: "/banners", icon: Image },
   { name: "Cupones", href: "/coupons", icon: Ticket },
   { name: "Popups", href: "/popups", icon: MessageSquare },
+  { name: "Notificaciones", href: "/notifications", icon: Bell },
   { name: "App Mods", href: "/app-mods", icon: Smartphone },
   { name: "Pedidos", href: "/orders", icon: ShoppingCart },
   { name: "Envíos", href: "/shipments", icon: Truck },
