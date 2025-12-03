@@ -444,6 +444,81 @@ export type Database = {
         }
         Relationships: []
       }
+      notification_logs: {
+        Row: {
+          body: string
+          created_at: string | null
+          data: Json | null
+          error_message: string | null
+          fcm_token: string | null
+          id: string
+          sent_at: string | null
+          status: string | null
+          template_type: string | null
+          title: string
+          user_id: string | null
+        }
+        Insert: {
+          body: string
+          created_at?: string | null
+          data?: Json | null
+          error_message?: string | null
+          fcm_token?: string | null
+          id?: string
+          sent_at?: string | null
+          status?: string | null
+          template_type?: string | null
+          title: string
+          user_id?: string | null
+        }
+        Update: {
+          body?: string
+          created_at?: string | null
+          data?: Json | null
+          error_message?: string | null
+          fcm_token?: string | null
+          id?: string
+          sent_at?: string | null
+          status?: string | null
+          template_type?: string | null
+          title?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
+      notification_templates: {
+        Row: {
+          body_template: string
+          created_at: string | null
+          data_schema: Json | null
+          id: string
+          is_active: boolean | null
+          title_template: string
+          type: string
+          updated_at: string | null
+        }
+        Insert: {
+          body_template: string
+          created_at?: string | null
+          data_schema?: Json | null
+          id?: string
+          is_active?: boolean | null
+          title_template: string
+          type: string
+          updated_at?: string | null
+        }
+        Update: {
+          body_template?: string
+          created_at?: string | null
+          data_schema?: Json | null
+          id?: string
+          is_active?: boolean | null
+          title_template?: string
+          type?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       notifications: {
         Row: {
           action_data: Json | null
@@ -1389,6 +1464,39 @@ export type Database = {
           },
         ]
       }
+      user_tokens: {
+        Row: {
+          created_at: string | null
+          device_name: string | null
+          device_type: string | null
+          fcm_token: string
+          id: string
+          is_active: boolean | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          device_name?: string | null
+          device_type?: string | null
+          fcm_token: string
+          id?: string
+          is_active?: boolean | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          device_name?: string | null
+          device_type?: string | null
+          fcm_token?: string
+          id?: string
+          is_active?: boolean | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       users: {
         Row: {
           avatar_url: string | null
@@ -1516,6 +1624,59 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      get_all_active_fcm_tokens: {
+        Args: never
+        Returns: {
+          device_type: string
+          fcm_token: string
+          user_id: string
+        }[]
+      }
+      get_category_tree: {
+        Args: never
+        Returns: {
+          children: Json
+          created_at: string
+          description: string
+          display_order: number
+          id: string
+          image_url: string
+          is_featured: boolean
+          name: string
+          parent_id: string
+          slug: string
+        }[]
+      }
+      get_subcategories: {
+        Args: { parent_category_id: string }
+        Returns: {
+          created_at: string | null
+          description: string | null
+          display_order: number | null
+          icon_name: string | null
+          id: string
+          image_url: string | null
+          is_active: boolean | null
+          is_featured: boolean | null
+          name: string
+          parent_id: string | null
+          slug: string
+          updated_at: string | null
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "categories"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
+      get_user_fcm_tokens: {
+        Args: { p_user_id: string }
+        Returns: {
+          device_type: string
+          fcm_token: string
+        }[]
+      }
       increment_coupon_usage: {
         Args: { coupon_id: string }
         Returns: undefined

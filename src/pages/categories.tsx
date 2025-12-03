@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -25,12 +25,19 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
-import { Pencil, Trash2, Plus, ChevronUp, ChevronDown, ImageIcon, X, Star } from "lucide-react";
+import { Pencil, Trash2, Plus, ChevronUp, ChevronDown, ImageIcon, X, Star, CornerDownRight } from "lucide-react";
 import { toast } from "sonner";
 import {
   useCategories,
@@ -56,6 +63,7 @@ const Categories = () => {
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [editingCategory, setEditingCategory] = useState<CategoryWithCount | null>(null);
   const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [filterType, setFilterType] = useState<"all" | "main" | "sub">("all");
 
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
@@ -68,7 +76,68 @@ const Categories = () => {
     is_featured: false,
     display_order: null as number | null,
     image_url: null as string | null,
+    parent_id: null as string | null,
   });
+
+  // Categorías principales (sin parent_id)
+  const mainCategories = useMemo(() => 
+    categories.filter(c => !c.parent_id), 
+    [categories]
+  );
+
+  // Categorías que tienen subcategorías (no pueden convertirse en subcategorías)
+  const categoriesWithChildren = useMemo(() => {
+    const parentIds = new Set(categories.filter(c => c.parent_id).map(c => c.parent_id));
+    return parentIds;
+  }, [categories]);
+
+  // Filtrar categorías según el tipo seleccionado
+  const filteredCategories = useMemo(() => {
+    let filtered = categories;
+    if (filterType === "main") {
+      filtered = categories.filter(c => !c.parent_id);
+    } else if (filterType === "sub") {
+      filtered = categories.filter(c => c.parent_id);
+    }
+    return filtered;
+  }, [categories, filterType]);
+
+  // Organizar categorías jerárquicamente para la tabla
+  const organizedCategories = useMemo(() => {
+    if (filterType !== "all") return filteredCategories;
+    
+    const result: CategoryWithCount[] = [];
+    const mainCats = categories.filter(c => !c.parent_id);
+    
+    mainCats.forEach(main => {
+      result.push(main);
+      const subs = categories.filter(c => c.parent_id === main.id);
+      subs.forEach(sub => result.push(sub));
+    });
+    
+    // Agregar subcategorías huérfanas (cuyo padre fue eliminado)
+    const orphans = categories.filter(c => c.parent_id && !categories.find(p => p.id === c.parent_id));
+    orphans.forEach(o => result.push(o));
+    
+    return result;
+  }, [categories, filteredCategories, filterType]);
+
+  // Obtener categorías padre válidas para el select
+  const validParentCategories = useMemo(() => {
+    return mainCategories.filter(c => {
+      // No puede seleccionarse a sí mismo
+      if (editingCategory && c.id === editingCategory.id) return false;
+      // No puede ser subcategoría (ya tiene parent_id)
+      if (c.parent_id) return false;
+      return true;
+    });
+  }, [mainCategories, editingCategory]);
+
+  // Verificar si la categoría actual tiene subcategorías
+  const currentCategoryHasChildren = useMemo(() => {
+    if (!editingCategory) return false;
+    return categoriesWithChildren.has(editingCategory.id);
+  }, [editingCategory, categoriesWithChildren]);
 
   useEffect(() => {
     if (editingCategory) {
@@ -80,6 +149,7 @@ const Categories = () => {
         is_featured: editingCategory.is_featured ?? false,
         display_order: editingCategory.display_order ?? null,
         image_url: editingCategory.image_url || null,
+        parent_id: editingCategory.parent_id || null,
       });
       setImagePreview(editingCategory.image_url || null);
     }
@@ -151,6 +221,7 @@ const Categories = () => {
         is_featured: formData.is_featured,
         display_order: formData.display_order,
         image_url: imageUrl,
+        parent_id: formData.parent_id,
       };
 
       if (editingCategory) {
@@ -181,7 +252,14 @@ const Categories = () => {
       is_featured: false,
       display_order: null,
       image_url: null,
+      parent_id: null,
     });
+  };
+
+  const getParentName = (parentId: string | null) => {
+    if (!parentId) return null;
+    const parent = categories.find(c => c.id === parentId);
+    return parent?.name || "Padre no encontrado";
   };
 
   const handleEdit = (category: CategoryWithCount) => {
@@ -259,6 +337,26 @@ const Categories = () => {
         </Button>
       </div>
 
+      {/* Filtros */}
+      <div className="flex items-center gap-4 mb-6">
+        <div className="flex items-center gap-2">
+          <Label className="uppercase tracking-wide text-xs">Tipo:</Label>
+          <Select value={filterType} onValueChange={(v) => setFilterType(v as "all" | "main" | "sub")}>
+            <SelectTrigger className="w-48 border-2">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todas</SelectItem>
+              <SelectItem value="main">Solo principales</SelectItem>
+              <SelectItem value="sub">Solo subcategorías</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+        <div className="text-sm text-muted-foreground">
+          {organizedCategories.length} categoría(s)
+        </div>
+      </div>
+
       <div className="border-2 border-border rounded-sm overflow-x-auto">
         <Table>
           <TableHeader>
@@ -278,6 +376,9 @@ const Categories = () => {
               <TableHead className="uppercase tracking-wide font-bold text-center w-32">
                 Orden
               </TableHead>
+              <TableHead className="uppercase tracking-wide font-bold text-center w-28">
+                Tipo
+              </TableHead>
               <TableHead className="uppercase tracking-wide font-bold text-center w-24">
                 Productos
               </TableHead>
@@ -290,15 +391,15 @@ const Categories = () => {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {categories.length === 0 ? (
+            {organizedCategories.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
+                <TableCell colSpan={9} className="text-center py-8 text-muted-foreground">
                   No hay categorías registradas
                 </TableCell>
               </TableRow>
             ) : (
-              categories.map((category, index) => (
-                <TableRow key={category.id} className="border-b border-border">
+              organizedCategories.map((category, index) => (
+                <TableRow key={category.id} className={`border-b border-border ${category.parent_id ? "bg-muted/30" : ""}`}>
                   {/* Columna de imagen */}
                   <TableCell>
                     {category.image_url ? (
@@ -317,11 +418,21 @@ const Categories = () => {
                   {/* Nombre */}
                   <TableCell className="font-medium">
                     <div className="flex items-center gap-2">
-                      {category.name}
+                      {category.parent_id && (
+                        <CornerDownRight className="h-4 w-4 text-muted-foreground ml-2" />
+                      )}
+                      <span className={category.parent_id ? "text-muted-foreground" : ""}>
+                        {category.name}
+                      </span>
                       {category.is_featured && (
                         <Star className="h-4 w-4 text-yellow-500 fill-yellow-500" />
                       )}
                     </div>
+                    {category.parent_id && (
+                      <div className="text-xs text-muted-foreground ml-6">
+                        en {getParentName(category.parent_id)}
+                      </div>
+                    )}
                   </TableCell>
 
                   {/* Descripción */}
@@ -367,6 +478,13 @@ const Categories = () => {
                         <ChevronDown className="h-4 w-4" />
                       </Button>
                     </div>
+                  </TableCell>
+
+                  {/* Tipo */}
+                  <TableCell className="text-center">
+                    <Badge variant={category.parent_id ? "secondary" : "outline"}>
+                      {category.parent_id ? "Subcategoría" : "Principal"}
+                    </Badge>
                   </TableCell>
 
                   {/* Productos */}
@@ -465,6 +583,40 @@ const Categories = () => {
                 rows={3}
                 className="border-2"
               />
+            </div>
+
+            {/* Campo Categoría Padre */}
+            <div className="space-y-2">
+              <Label htmlFor="parent_id" className="uppercase tracking-wide text-xs">
+                Categoría Padre (opcional)
+              </Label>
+              <Select
+                value={formData.parent_id || "none"}
+                onValueChange={(value) =>
+                  setFormData((prev) => ({ ...prev, parent_id: value === "none" ? null : value }))
+                }
+                disabled={currentCategoryHasChildren}
+              >
+                <SelectTrigger className="border-2">
+                  <SelectValue placeholder="Seleccionar categoría padre..." />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">Sin categoría padre (Principal)</SelectItem>
+                  {validParentCategories.map((cat) => (
+                    <SelectItem key={cat.id} value={cat.id}>
+                      {cat.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {currentCategoryHasChildren && (
+                <p className="text-xs text-amber-600">
+                  Esta categoría tiene subcategorías y no puede convertirse en subcategoría.
+                </p>
+              )}
+              <p className="text-xs text-muted-foreground">
+                Si seleccionas un padre, esta será una subcategoría.
+              </p>
             </div>
 
             {/* Campo de imagen */}

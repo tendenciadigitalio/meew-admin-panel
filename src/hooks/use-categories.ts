@@ -42,6 +42,7 @@ export function useCreateCategory() {
       is_featured?: boolean;
       display_order?: number | null;
       image_url?: string | null;
+      parent_id?: string | null;
     }) => {
       // Verificar si el slug ya existe
       const { data: existing, error: checkError } = await supabase
