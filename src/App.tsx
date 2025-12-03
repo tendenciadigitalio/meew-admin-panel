@@ -16,6 +16,7 @@ import Coupons from "./pages/coupons";
 import PopUps from "./pages/popups";
 import AppMods from "./pages/app-mods";
 import Shipments from "./pages/shipments";
+import Notifications from "./pages/notifications";
 import Auth from "./pages/auth";
 import NotFound from "./pages/NotFound";
 
@@ -47,6 +48,7 @@ const App = () => (
               <Route path="/popups" element={<PopUps />} />
               <Route path="/app-mods" element={<AppMods />} />
               <Route path="/shipments" element={<Shipments />} />
+              <Route path="/notifications" element={<Notifications />} />
             </Route>
             <Route path="*" element={<NotFound />} />
           </Routes>

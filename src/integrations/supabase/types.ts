@@ -1115,6 +1115,66 @@ export type Database = {
           },
         ]
       }
+      promo_notifications: {
+        Row: {
+          action_type: string
+          action_value: string | null
+          body: string
+          created_at: string | null
+          created_by: string | null
+          failed_sends: number | null
+          id: string
+          image_url: string | null
+          scheduled_at: string | null
+          sent_at: string | null
+          status: string
+          successful_sends: number | null
+          target_audience: string
+          target_gender: string | null
+          title: string
+          total_recipients: number | null
+          updated_at: string | null
+        }
+        Insert: {
+          action_type?: string
+          action_value?: string | null
+          body: string
+          created_at?: string | null
+          created_by?: string | null
+          failed_sends?: number | null
+          id?: string
+          image_url?: string | null
+          scheduled_at?: string | null
+          sent_at?: string | null
+          status?: string
+          successful_sends?: number | null
+          target_audience?: string
+          target_gender?: string | null
+          title: string
+          total_recipients?: number | null
+          updated_at?: string | null
+        }
+        Update: {
+          action_type?: string
+          action_value?: string | null
+          body?: string
+          created_at?: string | null
+          created_by?: string | null
+          failed_sends?: number | null
+          id?: string
+          image_url?: string | null
+          scheduled_at?: string | null
+          sent_at?: string | null
+          status?: string
+          successful_sends?: number | null
+          target_audience?: string
+          target_gender?: string | null
+          title?: string
+          total_recipients?: number | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       promotional_banners: {
         Row: {
           created_at: string | null
@@ -1647,6 +1707,14 @@ export type Database = {
           slug: string
         }[]
       }
+      get_notification_recipients: {
+        Args: { p_target_audience: string; p_target_gender?: string }
+        Returns: {
+          device_type: string
+          fcm_token: string
+          user_id: string
+        }[]
+      }
       get_subcategories: {
         Args: { parent_category_id: string }
         Returns: {
@@ -1684,6 +1752,14 @@ export type Database = {
       is_free_shipping_active: {
         Args: { cart_total: number }
         Returns: boolean
+      }
+      update_promo_notification_stats: {
+        Args: {
+          p_failed: number
+          p_notification_id: string
+          p_successful: number
+        }
+        Returns: undefined
       }
     }
     Enums: {
