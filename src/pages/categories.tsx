@@ -417,16 +417,40 @@ const Categories = () => {
 
                   {/* Nombre */}
                   <TableCell className="font-medium">
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 group">
                       {category.parent_id && (
                         <CornerDownRight className="h-4 w-4 text-muted-foreground ml-2" />
                       )}
-                      <span className={category.parent_id ? "text-muted-foreground" : ""}>
+                      <button
+                        onClick={() => handleEdit(category)}
+                        className={`hover:underline text-left ${category.parent_id ? "text-muted-foreground" : ""}`}
+                        title="Clic para editar"
+                      >
                         {category.name}
-                      </span>
+                      </button>
                       {category.is_featured && (
                         <Star className="h-4 w-4 text-yellow-500 fill-yellow-500" />
                       )}
+                      <div className="opacity-0 group-hover:opacity-100 transition-opacity flex gap-1">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-6 w-6"
+                          onClick={() => handleEdit(category)}
+                          title="Editar"
+                        >
+                          <Pencil className="h-3 w-3" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-6 w-6 text-destructive hover:text-destructive"
+                          onClick={() => handleDeleteClick(category.id)}
+                          title="Eliminar"
+                        >
+                          <Trash2 className="h-3 w-3" />
+                        </Button>
+                      </div>
                     </div>
                     {category.parent_id && (
                       <div className="text-xs text-muted-foreground ml-6">
