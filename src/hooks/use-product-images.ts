@@ -7,39 +7,67 @@ export const useUploadProductImage = () => {
 
   return useMutation({
     mutationFn: async ({ productId, file }: { productId: string; file: File }) => {
+      console.log("[useUploadProductImage] Starting upload for product:", productId);
+      console.log("[useUploadProductImage] File details:", {
+        name: file.name,
+        size: file.size,
+        type: file.type,
+      });
+
       // Upload to Storage
       const fileExt = file.name.split(".").pop();
       const fileName = `${productId}/${Date.now()}.${fileExt}`;
-      const { error: uploadError } = await supabase.storage
+      
+      console.log("[useUploadProductImage] Uploading to path:", fileName);
+      
+      const { data: uploadData, error: uploadError } = await supabase.storage
         .from("product_images")
         .upload(fileName, file);
 
-      if (uploadError) throw uploadError;
+      if (uploadError) {
+        console.error("[useUploadProductImage] Storage upload error:", uploadError);
+        throw new Error(`Error al subir archivo: ${uploadError.message}`);
+      }
+
+      console.log("[useUploadProductImage] Upload successful:", uploadData);
 
       // Get public URL
       const { data: { publicUrl } } = supabase.storage
         .from("product_images")
         .getPublicUrl(fileName);
 
+      console.log("[useUploadProductImage] Public URL:", publicUrl);
+
       // Check if this is the first image for this product
-      const { data: existingImages } = await supabase
+      const { data: existingImages, error: fetchError } = await supabase
         .from("product_images")
         .select("id")
         .eq("product_id", productId);
 
+      if (fetchError) {
+        console.error("[useUploadProductImage] Error fetching existing images:", fetchError);
+      }
+
       const isFirstImage = !existingImages || existingImages.length === 0;
+      console.log("[useUploadProductImage] Is first image:", isFirstImage);
 
       // Insert into product_images table
-      const { error: dbError } = await supabase
+      const { data: insertData, error: dbError } = await supabase
         .from("product_images")
         .insert({
           product_id: productId,
           image_url: publicUrl,
           is_primary: isFirstImage,
           display_order: (existingImages?.length || 0) + 1,
-        });
+        })
+        .select();
 
-      if (dbError) throw dbError;
+      if (dbError) {
+        console.error("[useUploadProductImage] Database insert error:", dbError);
+        throw new Error(`Error al guardar en base de datos: ${dbError.message}`);
+      }
+
+      console.log("[useUploadProductImage] Database insert successful:", insertData);
 
       return publicUrl;
     },
@@ -47,9 +75,9 @@ export const useUploadProductImage = () => {
       queryClient.invalidateQueries({ queryKey: ["products"] });
       toast.success("Imagen subida correctamente");
     },
-    onError: (error) => {
-      console.error("Error uploading image:", error);
-      toast.error("Error al subir la imagen");
+    onError: (error: Error) => {
+      console.error("[useUploadProductImage] Full error:", error);
+      toast.error(error.message || "Error al subir la imagen");
     },
   });
 };

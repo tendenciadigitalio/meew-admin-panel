@@ -1,4 +1,5 @@
 import { useState, useRef } from "react";
+import { toast } from "sonner";
 import { Plus, Pencil, Trash2, Upload, Star, X, Image as ImageIcon, Palette, Search, ImageOff, Package, GripVertical, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -158,10 +159,30 @@ export default function Products() {
   };
 
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (!e.target.files?.[0] || !editingProduct) return;
+    console.log("[handleImageUpload] Function called");
+    console.log("[handleImageUpload] Files:", e.target.files);
+    console.log("[handleImageUpload] Editing product:", editingProduct?.id);
+    
+    if (!e.target.files?.[0]) {
+      console.log("[handleImageUpload] No file selected");
+      return;
+    }
+    
+    if (!editingProduct) {
+      console.log("[handleImageUpload] No editing product - this should not happen");
+      toast.error("Primero guarda el producto antes de subir imágenes");
+      return;
+    }
     
     const file = e.target.files[0];
-    await uploadImage.mutateAsync({ productId: editingProduct.id, file });
+    console.log("[handleImageUpload] Starting upload for file:", file.name);
+    
+    try {
+      await uploadImage.mutateAsync({ productId: editingProduct.id, file });
+      console.log("[handleImageUpload] Upload completed successfully");
+    } catch (error) {
+      console.error("[handleImageUpload] Upload failed:", error);
+    }
     
     if (fileInputRef.current) {
       fileInputRef.current.value = "";
