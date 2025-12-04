@@ -388,11 +388,26 @@ export default function Products() {
           id: editingProduct.id,
           updates: productData,
         });
+        setIsDialogOpen(false);
+        resetForm();
       } else {
-        await createProduct.mutateAsync(productData);
+        // Create new product and continue to images/variants
+        const createdProduct = await createProduct.mutateAsync(productData);
+        
+        // Set the created product as editing product with empty relations
+        const productWithRelations: ProductWithRelations = {
+          ...createdProduct,
+          category: null,
+          product_images: [],
+          product_variants: [],
+        };
+        
+        setEditingProduct(productWithRelations);
+        setActiveTab("images");
+        toast.info("Ahora puedes agregar imágenes y variantes", {
+          duration: 4000,
+        });
       }
-      setIsDialogOpen(false);
-      resetForm();
     } catch (error) {
       console.error("Error:", error);
     }
@@ -727,6 +742,27 @@ export default function Products() {
                       <Upload className="h-4 w-4" />
                       {uploadImage.isPending ? "Subiendo..." : "Subir Imagen"}
                     </Button>
+                    
+                    <div className="flex gap-2 mt-4 pt-4 border-t-2">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        className="flex-1 uppercase border-2"
+                        onClick={() => setActiveTab("variants")}
+                      >
+                        Continuar a Variantes
+                      </Button>
+                      <Button
+                        type="button"
+                        className="flex-1 uppercase"
+                        onClick={() => {
+                          setIsDialogOpen(false);
+                          resetForm();
+                        }}
+                      >
+                        Finalizar
+                      </Button>
+                    </div>
                   </div>
                 )}
               </TabsContent>
@@ -835,6 +871,27 @@ export default function Products() {
                         </div>
                       </div>
                     )}
+                    
+                    <div className="flex gap-2 mt-4 pt-4 border-t-2">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        className="flex-1 uppercase border-2"
+                        onClick={() => setActiveTab("images")}
+                      >
+                        Volver a Imágenes
+                      </Button>
+                      <Button
+                        type="button"
+                        className="flex-1 uppercase"
+                        onClick={() => {
+                          setIsDialogOpen(false);
+                          resetForm();
+                        }}
+                      >
+                        Finalizar
+                      </Button>
+                    </div>
                   </div>
                 )}
               </TabsContent>
