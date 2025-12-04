@@ -1715,6 +1715,30 @@ export type Database = {
           user_id: string
         }[]
       }
+      get_product_rating_stats: {
+        Args: { p_product_id: string }
+        Returns: {
+          average_rating: number
+          rating_1: number
+          rating_2: number
+          rating_3: number
+          rating_4: number
+          rating_5: number
+          total_reviews: number
+        }[]
+      }
+      get_product_reviews: {
+        Args: { p_limit?: number; p_offset?: number; p_product_id: string }
+        Returns: {
+          comment: string
+          created_at: string
+          id: string
+          rating: number
+          title: string
+          user_email: string
+          user_name: string
+        }[]
+      }
       get_subcategories: {
         Args: { parent_category_id: string }
         Returns: {
