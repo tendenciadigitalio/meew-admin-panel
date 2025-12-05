@@ -899,6 +899,27 @@ export type Database = {
         }
         Relationships: []
       }
+      popular_searches: {
+        Row: {
+          id: string
+          query: string
+          total_count: number
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          query: string
+          total_count?: number
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          query?: string
+          total_count?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       product_images: {
         Row: {
           alt_text: string | null
