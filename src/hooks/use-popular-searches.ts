@@ -19,12 +19,16 @@ interface PopularSearchFilters {
   minCount?: number;
 }
 
+// Helper to get typed client for popular_searches table
+const getPopularSearchesTable = () => {
+  return supabase.from("popular_searches" as any);
+};
+
 export function usePopularSearches(filters?: PopularSearchFilters) {
   return useQuery({
     queryKey: ["popular-searches", filters],
     queryFn: async () => {
-      let query = supabase
-        .from("popular_searches")
+      let query = getPopularSearchesTable()
         .select("*")
         .order("total_count", { ascending: false });
 
@@ -39,7 +43,7 @@ export function usePopularSearches(filters?: PopularSearchFilters) {
       const { data, error } = await query;
 
       if (error) throw error;
-      return data as PopularSearch[];
+      return (data || []) as unknown as PopularSearch[];
     },
   });
 }
@@ -48,14 +52,13 @@ export function usePopularSearchStats() {
   return useQuery({
     queryKey: ["popular-searches", "stats"],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("popular_searches")
+      const { data, error } = await getPopularSearchesTable()
         .select("*")
         .order("total_count", { ascending: false });
 
       if (error) throw error;
 
-      const searches = data as PopularSearch[];
+      const searches = (data || []) as unknown as PopularSearch[];
       const totalTerms = searches.length;
       const totalSearches = searches.reduce((sum, s) => sum + s.total_count, 0);
       const topSearch = searches[0] || null;
@@ -77,17 +80,16 @@ export function useAddPopularSearch() {
 
   return useMutation({
     mutationFn: async (data: PopularSearchFormData) => {
-      const { data: result, error } = await supabase
-        .from("popular_searches")
+      const { data: result, error } = await getPopularSearchesTable()
         .insert({
           query: data.query,
           total_count: data.total_count,
-        })
+        } as any)
         .select()
         .single();
 
       if (error) throw error;
-      return result;
+      return result as unknown as PopularSearch;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["popular-searches"] });
@@ -104,12 +106,11 @@ export function useUpdatePopularSearch() {
 
   return useMutation({
     mutationFn: async ({ id, data }: { id: string; data: Partial<PopularSearchFormData> }) => {
-      const { error } = await supabase
-        .from("popular_searches")
+      const { error } = await getPopularSearchesTable()
         .update({
           ...data,
           updated_at: new Date().toISOString(),
-        })
+        } as any)
         .eq("id", id);
 
       if (error) throw error;
@@ -129,8 +130,7 @@ export function useDeletePopularSearch() {
 
   return useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase
-        .from("popular_searches")
+      const { error } = await getPopularSearchesTable()
         .delete()
         .eq("id", id);
 
