@@ -73,6 +73,42 @@ export type Database = {
           },
         ]
       }
+      app_branding: {
+        Row: {
+          created_at: string | null
+          description: string | null
+          display_order: number | null
+          id: string
+          image_url: string
+          is_active: boolean | null
+          title: string | null
+          type: string
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          description?: string | null
+          display_order?: number | null
+          id?: string
+          image_url: string
+          is_active?: boolean | null
+          title?: string | null
+          type: string
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          description?: string | null
+          display_order?: number | null
+          id?: string
+          image_url?: string
+          is_active?: boolean | null
+          title?: string | null
+          type?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       app_menu_icons: {
         Row: {
           active_icon_url: string | null
