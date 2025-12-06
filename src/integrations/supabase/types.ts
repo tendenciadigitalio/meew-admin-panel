@@ -1545,6 +1545,56 @@ export type Database = {
           },
         ]
       }
+      size_guides: {
+        Row: {
+          category_id: string | null
+          created_at: string | null
+          description: string | null
+          display_order: number | null
+          id: string
+          is_active: boolean | null
+          measurements: Json
+          name: string
+          sizes: Json
+          unit: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          category_id?: string | null
+          created_at?: string | null
+          description?: string | null
+          display_order?: number | null
+          id?: string
+          is_active?: boolean | null
+          measurements?: Json
+          name: string
+          sizes?: Json
+          unit?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          category_id?: string | null
+          created_at?: string | null
+          description?: string | null
+          display_order?: number | null
+          id?: string
+          is_active?: boolean | null
+          measurements?: Json
+          name?: string
+          sizes?: Json
+          unit?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "size_guides_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "categories"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_tokens: {
         Row: {
           created_at: string | null

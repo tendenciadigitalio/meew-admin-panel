@@ -19,6 +19,7 @@ import Shipments from "./pages/shipments";
 import Notifications from "./pages/notifications";
 import Reviews from "./pages/reviews";
 import PopularSearches from "./pages/popular-searches";
+import SizeGuides from "./pages/size-guides";
 import Auth from "./pages/auth";
 import NotFound from "./pages/NotFound";
 
@@ -43,6 +44,7 @@ const App = () => (
               <Route path="/" element={<Dashboard />} />
               <Route path="/products" element={<Products />} />
               <Route path="/categories" element={<Categories />} />
+              <Route path="/size-guides" element={<SizeGuides />} />
               <Route path="/reviews" element={<Reviews />} />
               <Route path="/popular-searches" element={<PopularSearches />} />
               <Route path="/orders" element={<Orders />} />
