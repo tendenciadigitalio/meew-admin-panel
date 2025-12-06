@@ -1,8 +1,9 @@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Smartphone, Cloud, FolderOpen } from "lucide-react";
+import { Smartphone, Cloud, FolderOpen, Palette } from "lucide-react";
 import { MenuIconsTab } from "@/components/app-mods/menu-icons-tab";
 import { UploadFilesTab } from "@/components/app-mods/upload-files-tab";
 import { MyAssetsTab } from "@/components/app-mods/my-assets-tab";
+import { AppBrandingTab } from "@/components/app-mods/app-branding-tab";
 
 export default function AppMods() {
   return (
@@ -15,10 +16,14 @@ export default function AppMods() {
       </div>
 
       <Tabs defaultValue="menu-icons" className="w-full">
-        <TabsList className="grid w-full grid-cols-3">
+        <TabsList className="grid w-full grid-cols-4">
           <TabsTrigger value="menu-icons" className="gap-2">
             <Smartphone className="h-4 w-4" />
             Iconos del Menú
+          </TabsTrigger>
+          <TabsTrigger value="branding" className="gap-2">
+            <Palette className="h-4 w-4" />
+            App Branding
           </TabsTrigger>
           <TabsTrigger value="upload" className="gap-2">
             <Cloud className="h-4 w-4" />
@@ -32,6 +37,10 @@ export default function AppMods() {
 
         <TabsContent value="menu-icons" className="mt-6">
           <MenuIconsTab />
+        </TabsContent>
+
+        <TabsContent value="branding" className="mt-6">
+          <AppBrandingTab />
         </TabsContent>
 
         <TabsContent value="upload" className="mt-6">
