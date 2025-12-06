@@ -1,4 +1,4 @@
-import { LayoutDashboard, Package, Tag, ShoppingCart, Users, Image, LogOut, Ticket, MessageSquare, Smartphone, Truck, Bell, Star, TrendingUp } from "lucide-react";
+import { LayoutDashboard, Package, Tag, ShoppingCart, Users, Image, LogOut, Ticket, MessageSquare, Smartphone, Truck, Bell, Star, TrendingUp, Ruler } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/contexts/auth-context";
@@ -8,6 +8,7 @@ const navigation = [
   { name: "Dashboard", href: "/", icon: LayoutDashboard },
   { name: "Productos", href: "/products", icon: Package },
   { name: "Categorías", href: "/categories", icon: Tag },
+  { name: "Guía de Tallas", href: "/size-guides", icon: Ruler },
   { name: "Reseñas", href: "/reviews", icon: Star },
   { name: "Tendencias", href: "/popular-searches", icon: TrendingUp },
   { name: "Banners", href: "/banners", icon: Image },
