@@ -1778,6 +1778,7 @@ export type Database = {
           slug: string
         }[]
       }
+      get_conversion_metrics: { Args: never; Returns: Json }
       get_notification_recipients: {
         Args: { p_target_audience: string; p_target_gender?: string }
         Returns: {
@@ -1810,6 +1811,31 @@ export type Database = {
           user_name: string
         }[]
       }
+      get_recent_activity: {
+        Args: { p_limit?: number }
+        Returns: {
+          activity_type: string
+          created_at: string
+          description: string
+          metadata: Json
+        }[]
+      }
+      get_sales_by_category: {
+        Args: never
+        Returns: {
+          category_name: string
+          percentage: number
+          total_sales: number
+        }[]
+      }
+      get_sales_by_period: {
+        Args: { p_period?: string; p_start_date?: string }
+        Returns: {
+          order_count: number
+          period_label: string
+          total_sales: number
+        }[]
+      }
       get_subcategories: {
         Args: { parent_category_id: string }
         Returns: {
@@ -1832,6 +1858,16 @@ export type Database = {
           isOneToOne: false
           isSetofReturn: true
         }
+      }
+      get_top_selling_products: {
+        Args: { p_limit?: number }
+        Returns: {
+          product_id: string
+          product_image: string
+          product_name: string
+          total_revenue: number
+          total_sold: number
+        }[]
       }
       get_user_fcm_tokens: {
         Args: { p_user_id: string }
