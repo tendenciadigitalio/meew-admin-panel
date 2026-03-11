@@ -11,7 +11,7 @@ export function useOrders() {
         .from("orders")
         .select(`
           *,
-          user:users(*),
+          user:users!orders_user_id_public_users_fkey(*),
           order_items(*)
         `)
         .order("created_at", { ascending: false });
