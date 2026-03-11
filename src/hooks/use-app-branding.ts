@@ -188,7 +188,7 @@ export function useBatchUpdateOrder() {
   });
 }
 
-// Upload branding image to storage
+// Upload branding asset to storage (images, video, lottie)
 export async function uploadBrandingImage(
   file: File,
   type: "splash" | "onboarding"
@@ -197,11 +197,17 @@ export async function uploadBrandingImage(
   const fileName = `${Date.now()}-${sanitizedName}`;
   const filePath = `branding/${type}/${fileName}`;
 
+  // Determine content type — .lottie files need special handling
+  const ext = file.name.split(".").pop()?.toLowerCase();
+  let contentType = file.type;
+  if (ext === "lottie") contentType = "application/json";
+  if (ext === "json") contentType = "application/json";
+
   const { error: uploadError } = await supabase.storage
     .from("meew_cloud")
     .upload(filePath, file, {
       upsert: false,
-      contentType: file.type,
+      contentType,
     });
 
   if (uploadError) throw uploadError;

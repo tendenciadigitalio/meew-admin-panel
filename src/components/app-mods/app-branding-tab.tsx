@@ -17,7 +17,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Skeleton } from "@/components/ui/skeleton";
 import { DragDropContext, Droppable, Draggable, DropResult } from "@hello-pangea/dnd";
-import { Upload, Loader2, Trash2, GripVertical, Image as ImageIcon, Plus, Smartphone } from "lucide-react";
+import { Upload, Loader2, Trash2, GripVertical, Image as ImageIcon, Plus, Smartphone, Play, FileJson, Info } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import {
   useAppBranding,
@@ -28,6 +28,86 @@ import {
   uploadBrandingImage,
   type AppBranding,
 } from "@/hooks/use-app-branding";
+
+function getMediaType(url: string): "video" | "lottie" | "image" {
+  const lower = url.toLowerCase();
+  if (lower.endsWith(".mp4") || lower.endsWith(".mov")) return "video";
+  if (lower.endsWith(".json") || lower.endsWith(".lottie")) return "lottie";
+  return "image";
+}
+
+function MediaPreview({ url, alt }: { url: string; alt: string }) {
+  const type = getMediaType(url);
+
+  if (type === "video") {
+    return (
+      <div className="relative w-full h-full">
+        <video
+          src={url}
+          className="w-full h-full object-cover"
+          autoPlay
+          loop
+          muted
+          playsInline
+        />
+        <div className="absolute top-1 right-1 bg-black/60 rounded px-1.5 py-0.5">
+          <Play className="h-3 w-3 text-white" />
+        </div>
+      </div>
+    );
+  }
+
+  if (type === "lottie") {
+    return (
+      <div className="flex flex-col items-center justify-center w-full h-full bg-muted/50">
+        <FileJson className="h-8 w-8 text-primary mb-1" />
+        <span className="text-[10px] text-muted-foreground font-mono">Lottie</span>
+      </div>
+    );
+  }
+
+  return <img src={url} alt={alt} className="w-full h-full object-cover" />;
+}
+
+function FormatGuide() {
+  return (
+    <Card className="border-blue-500/20 bg-blue-500/5">
+      <CardHeader className="pb-3">
+        <CardTitle className="text-sm flex items-center gap-2">
+          <Info className="h-4 w-4 text-blue-500" />
+          GUÍA DE FORMATOS RECOMENDADOS
+        </CardTitle>
+      </CardHeader>
+      <CardContent>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-xs">
+          <div className="space-y-1">
+            <p className="font-semibold text-foreground">Lottie (.json/.lottie)</p>
+            <p className="text-muted-foreground">Ideal para splash y onboarding</p>
+            <p className="text-muted-foreground">Vector, escalable, &lt;50 KB</p>
+          </div>
+          <div className="space-y-1">
+            <p className="font-semibold text-foreground">WebP animado</p>
+            <p className="text-muted-foreground">Ideal para banners</p>
+            <p className="text-muted-foreground">Transparencia, &lt;500 KB</p>
+          </div>
+          <div className="space-y-1">
+            <p className="font-semibold text-foreground">MP4 (H.264)</p>
+            <p className="text-muted-foreground">Ideal para videos de producto</p>
+            <p className="text-muted-foreground">Alta fidelidad, &lt;2 MB</p>
+          </div>
+          <div className="space-y-1">
+            <p className="font-semibold text-foreground">PNG / JPG</p>
+            <p className="text-muted-foreground">Imágenes estáticas</p>
+            <p className="text-muted-foreground">Fotos, fondos, &lt;2 MB</p>
+          </div>
+        </div>
+        <p className="text-[10px] text-muted-foreground mt-3 border-t pt-2">
+          Dimensiones recomendadas: 1080×1920 (9:16) • GIF no recomendado (pesado, 256 colores) • Lottie reduce hasta 95% vs GIF
+        </p>
+      </CardContent>
+    </Card>
+  );
+}
 
 export function AppBrandingTab() {
   const { data: allBranding = [], isLoading } = useAppBranding();
@@ -114,21 +194,54 @@ export function AppBrandingTab() {
     }
   };
 
+  const ACCEPTED_TYPES = [
+    "image/jpeg",
+    "image/png",
+    "image/gif",
+    "image/webp",
+    "video/mp4",
+    "application/json",       // Lottie JSON
+  ];
+
+  const ACCEPTED_EXTENSIONS = [
+    ".jpg", ".jpeg", ".png", ".gif", ".webp",
+    ".mp4",
+    ".json", ".lottie",
+  ];
+
+  const FILE_ACCEPT = "image/jpeg,image/png,image/gif,image/webp,video/mp4,application/json,.lottie";
+
+  const SIZE_LIMITS: Record<string, number> = {
+    "video/mp4": 5 * 1024 * 1024,       // 5 MB for video
+    "application/json": 500 * 1024,       // 500 KB for Lottie JSON
+    default: 2 * 1024 * 1024,             // 2 MB for images
+  };
+
   const validateFile = (file: File): boolean => {
-    const validTypes = ["image/jpeg", "image/png", "image/gif"];
-    if (!validTypes.includes(file.type)) {
+    const ext = "." + file.name.split(".").pop()?.toLowerCase();
+    const isLottie = ext === ".lottie" || ext === ".json";
+    const isValidType = ACCEPTED_TYPES.includes(file.type) || isLottie;
+
+    if (!isValidType) {
       toast({
         title: "Formato inválido",
-        description: "Solo se permiten archivos JPG, PNG o GIF",
+        description: `Formatos aceptados: JPG, PNG, GIF, WebP, MP4, Lottie (.json/.lottie)`,
         variant: "destructive",
       });
       return false;
     }
 
-    if (file.size > 5 * 1024 * 1024) {
+    const maxSize = file.type === "video/mp4"
+      ? SIZE_LIMITS["video/mp4"]
+      : isLottie
+        ? SIZE_LIMITS["application/json"]
+        : SIZE_LIMITS.default;
+
+    if (file.size > maxSize) {
+      const maxMB = (maxSize / (1024 * 1024)).toFixed(1);
       toast({
         title: "Archivo muy grande",
-        description: "El tamaño máximo es 5 MB",
+        description: `Tamaño máximo para este formato: ${maxMB} MB`,
         variant: "destructive",
       });
       return false;
@@ -179,15 +292,18 @@ export function AppBrandingTab() {
 
   return (
     <div className="space-y-8">
+      {/* Format Guide */}
+      <FormatGuide />
+
       {/* Splash Screen Section */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Smartphone className="h-5 w-5" />
-            IMAGEN DE SPLASH
+            SPLASH SCREEN
           </CardTitle>
           <CardDescription>
-            Imagen que aparece al iniciar la aplicación • Dimensiones recomendadas: 1080 x 1920 px
+            Contenido que aparece al iniciar la app • Acepta imágenes, video MP4, o animación Lottie
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -198,11 +314,7 @@ export function AppBrandingTab() {
                 className="aspect-[9/16] rounded-lg border-2 border-dashed flex items-center justify-center bg-muted/30 overflow-hidden"
               >
                 {splashItem?.image_url ? (
-                  <img
-                    src={splashItem.image_url}
-                    alt="Splash screen"
-                    className="w-full h-full object-cover"
-                  />
+                  <MediaPreview url={splashItem.image_url} alt="Splash screen" />
                 ) : (
                   <div className="text-center p-4">
                     <ImageIcon className="h-8 w-8 mx-auto text-muted-foreground mb-2" />
@@ -254,7 +366,7 @@ export function AppBrandingTab() {
                 <input
                   ref={splashInputRef}
                   type="file"
-                  accept="image/jpeg,image/png,image/gif"
+                  accept={FILE_ACCEPT}
                   className="hidden"
                   onChange={(e) => {
                     const file = e.target.files?.[0];
@@ -263,7 +375,7 @@ export function AppBrandingTab() {
                   }}
                 />
                 <p className="text-xs text-muted-foreground mt-2">
-                  JPG, PNG o GIF • Máximo 5 MB
+                  JPG, PNG, WebP, GIF, MP4, Lottie (.json/.lottie)
                 </p>
               </div>
 
@@ -292,10 +404,10 @@ export function AppBrandingTab() {
             <div>
               <CardTitle className="flex items-center gap-2">
                 <ImageIcon className="h-5 w-5" />
-                IMÁGENES DE ONBOARDING
+                ONBOARDING SLIDES
               </CardTitle>
               <CardDescription>
-                Imágenes del tutorial inicial (hasta 5) • Dimensiones recomendadas: 1080 x 1920 px
+                Slides del tutorial inicial (hasta 5) • Imágenes, video MP4, o animación Lottie
               </CardDescription>
             </div>
             <Button
@@ -317,7 +429,7 @@ export function AppBrandingTab() {
             <input
               ref={onboardingInputRef}
               type="file"
-              accept="image/jpeg,image/png,image/gif"
+              accept={FILE_ACCEPT}
               className="hidden"
               onChange={(e) => {
                 const file = e.target.files?.[0];
@@ -434,11 +546,7 @@ function OnboardingItem({ item, index, onUpdate, onDelete }: OnboardingItemProps
           {/* Image Preview */}
           <div className="w-[100px] flex-shrink-0">
             <div className="aspect-[9/16] rounded-lg border overflow-hidden bg-muted/30">
-              <img
-                src={item.image_url}
-                alt={`Onboarding ${index + 1}`}
-                className="w-full h-full object-cover"
-              />
+              <MediaPreview url={item.image_url} alt={`Onboarding ${index + 1}`} />
             </div>
           </div>
 
