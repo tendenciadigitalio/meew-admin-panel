@@ -1,10 +1,33 @@
-import { LayoutDashboard, Package, Tag, ShoppingCart, Users, Image, LogOut, Ticket, MessageSquare, Smartphone, Truck, Bell, Star, TrendingUp, Ruler } from "lucide-react";
+import {
+  LayoutDashboard, Package, Tag, ShoppingCart, Users, Image, LogOut,
+  Ticket, MessageSquare, Smartphone, Truck, Bell, Star, TrendingUp, Ruler,
+  type LucideIcon,
+} from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/contexts/auth-context";
+import { useAdminMenu } from "@/hooks/use-admin-menu";
 import { Button } from "@/components/ui/button";
 
-const navigation = [
+const iconMap: Record<string, LucideIcon> = {
+  LayoutDashboard,
+  Package,
+  Tag,
+  Ruler,
+  Star,
+  TrendingUp,
+  ImageIcon: Image,
+  Ticket,
+  MessageSquare,
+  Bell,
+  Smartphone,
+  ShoppingCart,
+  Truck,
+  Users,
+};
+
+// Fallback if DB is not yet loaded
+const fallbackNavigation = [
   { name: "Dashboard", href: "/", icon: LayoutDashboard },
   { name: "Productos", href: "/products", icon: Package },
   { name: "Categorías", href: "/categories", icon: Tag },
@@ -23,6 +46,20 @@ const navigation = [
 
 export function Sidebar() {
   const { signOut, user } = useAuth();
+  const { data: menuConfig } = useAdminMenu();
+
+  // TODO: get user role from profiles table; default to admin for now
+  const userRole = "admin";
+
+  const navigation = menuConfig
+    ? menuConfig
+        .filter((item) => item.is_visible && item.allowed_roles.includes(userRole))
+        .map((item) => ({
+          name: item.label,
+          href: item.href,
+          icon: iconMap[item.icon_name] || LayoutDashboard,
+        }))
+    : fallbackNavigation;
 
   return (
     <div className="fixed left-0 top-0 flex h-screen w-[280px] flex-col bg-sidebar">
@@ -37,7 +74,7 @@ export function Sidebar() {
       <nav className="flex-1 space-y-1 px-4 py-6 overflow-y-auto">
         {navigation.map((item) => (
           <NavLink
-            key={item.name}
+            key={item.href}
             to={item.href}
             end={item.href === "/"}
             className={cn(
