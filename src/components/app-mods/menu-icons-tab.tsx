@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -22,11 +22,27 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Loader2, Upload, RotateCcw, Save } from "lucide-react";
+import { Loader2, Upload, RotateCcw, Save, GripVertical } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+} from "@dnd-kit/core";
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  useSortable,
+  verticalListSortingStrategy,
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
+import {
   useAppMenuIcons,
-  useUpdateAppMenuIcon,
   useBatchUpdateAppMenuIcons,
   useResetAppMenuIcon,
   uploadMenuIcon,
@@ -34,12 +50,135 @@ import {
   type AppMenuIconUpdate,
 } from "@/hooks/use-app-menu-icons";
 
+function SortableRow({
+  icon,
+  merged,
+  onLocalChange,
+  onOpenIconModal,
+  onResetClick,
+  resetPending,
+}: {
+  icon: AppMenuIcon;
+  merged: AppMenuIcon;
+  onLocalChange: (id: string, updates: AppMenuIconUpdate) => void;
+  onOpenIconModal: (id: string, menuKey: string, type: "active" | "inactive") => void;
+  onResetClick: (id: string) => void;
+  resetPending: boolean;
+}) {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: icon.id });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+  };
+
+  return (
+    <tr ref={setNodeRef} style={style} className="border-b bg-card">
+      <td className="p-4 align-middle w-12">
+        <button
+          {...attributes}
+          {...listeners}
+          className="cursor-grab active:cursor-grabbing p-1 rounded hover:bg-muted"
+        >
+          <GripVertical className="h-5 w-5 text-muted-foreground" />
+        </button>
+      </td>
+      <td className="p-4 align-middle">
+        <span className="text-sm text-muted-foreground font-mono">
+          {merged.order_index}
+        </span>
+      </td>
+      <td className="p-4 align-middle">
+        <span className="font-medium">{merged.menu_key}</span>
+      </td>
+      <td className="p-4 align-middle">
+        <div className="flex items-center gap-2">
+          {merged.icon_url ? (
+            <img
+              src={merged.icon_url}
+              alt="Inactive icon"
+              className="h-6 w-6 rounded border"
+            />
+          ) : (
+            <div className="h-6 w-6 rounded border border-dashed flex items-center justify-center">
+              <span className="text-xs text-muted-foreground">M</span>
+            </div>
+          )}
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => onOpenIconModal(icon.id, icon.menu_key, "inactive")}
+          >
+            Cambiar
+          </Button>
+        </div>
+      </td>
+      <td className="p-4 align-middle">
+        <div className="flex items-center gap-2">
+          {merged.active_icon_url ? (
+            <img
+              src={merged.active_icon_url}
+              alt="Active icon"
+              className="h-6 w-6 rounded border"
+            />
+          ) : (
+            <div className="h-6 w-6 rounded border border-dashed flex items-center justify-center">
+              <span className="text-xs text-muted-foreground">M</span>
+            </div>
+          )}
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => onOpenIconModal(icon.id, icon.menu_key, "active")}
+          >
+            Cambiar
+          </Button>
+        </div>
+      </td>
+      <td className="p-4 align-middle">
+        <Input
+          value={merged.label}
+          onChange={(e) => onLocalChange(icon.id, { label: e.target.value })}
+          className="w-full max-w-[200px]"
+        />
+      </td>
+      <td className="p-4 align-middle">
+        <Switch
+          checked={merged.is_visible}
+          onCheckedChange={(checked) =>
+            onLocalChange(icon.id, { is_visible: checked })
+          }
+        />
+      </td>
+      <td className="p-4 align-middle">
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => onResetClick(icon.id)}
+          disabled={resetPending}
+        >
+          <RotateCcw className="h-4 w-4" />
+        </Button>
+      </td>
+    </tr>
+  );
+}
+
 export function MenuIconsTab() {
   const { data: menuIcons = [], isLoading } = useAppMenuIcons();
-  const updateIcon = useUpdateAppMenuIcon();
   const batchUpdate = useBatchUpdateAppMenuIcons();
   const resetIcon = useResetAppMenuIcon();
 
+  // Local state for ordering and edits
+  const [sortedIds, setSortedIds] = useState<string[] | null>(null);
   const [localChanges, setLocalChanges] = useState<
     Record<string, AppMenuIconUpdate>
   >({});
@@ -57,6 +196,44 @@ export function MenuIconsTab() {
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  // Build the sorted list: use sortedIds if we've dragged, otherwise use DB order
+  const sortedIcons = (() => {
+    if (!sortedIds) return menuIcons;
+    const map = new Map(menuIcons.map((i) => [i.id, i]));
+    return sortedIds.map((id) => map.get(id)!).filter(Boolean);
+  })();
+
+  // DnD sensors
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
+  );
+
+  const handleDragEnd = useCallback(
+    (event: DragEndEvent) => {
+      const { active, over } = event;
+      if (!over || active.id === over.id) return;
+
+      const currentIds = sortedIds || menuIcons.map((i) => i.id);
+      const oldIndex = currentIds.indexOf(active.id as string);
+      const newIndex = currentIds.indexOf(over.id as string);
+      const newIds = arrayMove(currentIds, oldIndex, newIndex);
+      setSortedIds(newIds);
+
+      // Mark order_index changes
+      newIds.forEach((id, index) => {
+        const original = menuIcons.find((i) => i.id === id);
+        if (original && original.order_index !== index) {
+          setLocalChanges((prev) => ({
+            ...prev,
+            [id]: { ...prev[id], order_index: index },
+          }));
+        }
+      });
+    },
+    [sortedIds, menuIcons]
+  );
+
   const handleLocalChange = (id: string, updates: AppMenuIconUpdate) => {
     setLocalChanges((prev) => ({
       ...prev,
@@ -64,11 +241,14 @@ export function MenuIconsTab() {
     }));
   };
 
-  const getMergedIcon = (icon: AppMenuIcon): AppMenuIcon => {
-    if (localChanges[icon.id]) {
-      return { ...icon, ...localChanges[icon.id] };
+  const getMergedIcon = (icon: AppMenuIcon, index: number): AppMenuIcon => {
+    const changes = localChanges[icon.id];
+    const merged = changes ? { ...icon, ...changes } : { ...icon };
+    // Show the visual order index based on position
+    if (sortedIds) {
+      merged.order_index = index;
     }
-    return icon;
+    return merged;
   };
 
   const handleOpenIconModal = (
@@ -101,7 +281,6 @@ export function MenuIconsTab() {
   const handleFileSelect = async (file: File) => {
     if (!selectedIcon) return;
 
-    // Validate file type
     if (!file.type.match(/^image\/(png|svg\+xml)$/)) {
       toast({
         title: "Formato inválido",
@@ -111,7 +290,6 @@ export function MenuIconsTab() {
       return;
     }
 
-    // Validate file size (500 KB)
     if (file.size > 500 * 1024) {
       toast({
         title: "Archivo muy grande",
@@ -179,8 +357,7 @@ export function MenuIconsTab() {
       return;
     }
 
-    // Validate at least one item is visible
-    const allIcons = menuIcons.map((icon) => getMergedIcon(icon));
+    const allIcons = sortedIcons.map((icon, i) => getMergedIcon(icon, i));
     const visibleCount = allIcons.filter((icon) => icon.is_visible).length;
 
     if (visibleCount === 0) {
@@ -192,22 +369,10 @@ export function MenuIconsTab() {
       return;
     }
 
-    // Validate no duplicate order_index
-    const orderIndexes = allIcons.map((icon) => icon.order_index);
-    const hasDuplicates = orderIndexes.length !== new Set(orderIndexes).size;
-
-    if (hasDuplicates) {
-      toast({
-        title: "Error de validación",
-        description: "No puede haber órdenes duplicados",
-        variant: "destructive",
-      });
-      return;
-    }
-
     batchUpdate.mutate(updates, {
       onSuccess: () => {
         setLocalChanges({});
+        setSortedIds(null);
       },
     });
   };
@@ -220,6 +385,8 @@ export function MenuIconsTab() {
     );
   }
 
+  const hasChanges = Object.keys(localChanges).length > 0;
+
   return (
     <div className="space-y-6">
       <div className="rounded-lg border bg-card">
@@ -227,8 +394,9 @@ export function MenuIconsTab() {
           <table className="w-full">
             <thead>
               <tr className="border-b bg-muted/50">
+                <th className="h-12 px-4 text-left align-middle font-medium text-muted-foreground w-12" />
                 <th className="h-12 px-4 text-left align-middle font-medium text-muted-foreground">
-                  Orden
+                  #
                 </th>
                 <th className="h-12 px-4 text-left align-middle font-medium text-muted-foreground">
                   Menú
@@ -250,123 +418,47 @@ export function MenuIconsTab() {
                 </th>
               </tr>
             </thead>
-            <tbody>
-              {menuIcons.map((icon) => {
-                const merged = getMergedIcon(icon);
-                return (
-                  <tr key={icon.id} className="border-b">
-                    <td className="p-4 align-middle">
-                      <Input
-                        type="number"
-                        min="0"
-                        value={merged.order_index}
-                        onChange={(e) =>
-                          handleLocalChange(icon.id, {
-                            order_index: parseInt(e.target.value),
-                          })
-                        }
-                        className="w-20"
-                      />
-                    </td>
-                    <td className="p-4 align-middle">
-                      <span className="font-medium">{merged.menu_key}</span>
-                    </td>
-                    <td className="p-4 align-middle">
-                      <div className="flex items-center gap-2">
-                        {merged.icon_url ? (
-                          <img
-                            src={merged.icon_url}
-                            alt="Inactive icon"
-                            className="h-6 w-6 rounded border"
-                          />
-                        ) : (
-                          <div className="h-6 w-6 rounded border border-dashed flex items-center justify-center">
-                            <span className="text-xs text-muted-foreground">
-                              M
-                            </span>
-                          </div>
-                        )}
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() =>
-                            handleOpenIconModal(icon.id, icon.menu_key, "inactive")
-                          }
-                        >
-                          Cambiar
-                        </Button>
-                      </div>
-                    </td>
-                    <td className="p-4 align-middle">
-                      <div className="flex items-center gap-2">
-                        {merged.active_icon_url ? (
-                          <img
-                            src={merged.active_icon_url}
-                            alt="Active icon"
-                            className="h-6 w-6 rounded border"
-                          />
-                        ) : (
-                          <div className="h-6 w-6 rounded border border-dashed flex items-center justify-center">
-                            <span className="text-xs text-muted-foreground">
-                              M
-                            </span>
-                          </div>
-                        )}
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() =>
-                            handleOpenIconModal(icon.id, icon.menu_key, "active")
-                          }
-                        >
-                          Cambiar
-                        </Button>
-                      </div>
-                    </td>
-                    <td className="p-4 align-middle">
-                      <Input
-                        value={merged.label}
-                        onChange={(e) =>
-                          handleLocalChange(icon.id, { label: e.target.value })
-                        }
-                        className="w-full max-w-[200px]"
-                      />
-                    </td>
-                    <td className="p-4 align-middle">
-                      <Switch
-                        checked={merged.is_visible}
-                        onCheckedChange={(checked) =>
-                          handleLocalChange(icon.id, { is_visible: checked })
-                        }
-                      />
-                    </td>
-                    <td className="p-4 align-middle">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => {
-                          setResetTargetId(icon.id);
-                          setResetDialogOpen(true);
-                        }}
-                        disabled={resetIcon.isPending}
-                      >
-                        <RotateCcw className="h-4 w-4" />
-                      </Button>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
+            <DndContext
+              sensors={sensors}
+              collisionDetection={closestCenter}
+              onDragEnd={handleDragEnd}
+            >
+              <SortableContext
+                items={sortedIcons.map((i) => i.id)}
+                strategy={verticalListSortingStrategy}
+              >
+                <tbody>
+                  {sortedIcons.map((icon, index) => (
+                    <SortableRow
+                      key={icon.id}
+                      icon={icon}
+                      merged={getMergedIcon(icon, index)}
+                      onLocalChange={handleLocalChange}
+                      onOpenIconModal={handleOpenIconModal}
+                      onResetClick={(id) => {
+                        setResetTargetId(id);
+                        setResetDialogOpen(true);
+                      }}
+                      resetPending={resetIcon.isPending}
+                    />
+                  ))}
+                </tbody>
+              </SortableContext>
+            </DndContext>
           </table>
         </div>
       </div>
 
+      {hasChanges && (
+        <p className="text-sm text-muted-foreground">
+          Arrastra las filas para reordenar. Los cambios no se guardan hasta que presiones el botón.
+        </p>
+      )}
+
       <div className="flex justify-end">
         <Button
           onClick={handleSaveAll}
-          disabled={
-            Object.keys(localChanges).length === 0 || batchUpdate.isPending
-          }
+          disabled={!hasChanges || batchUpdate.isPending}
         >
           {batchUpdate.isPending ? (
             <>
