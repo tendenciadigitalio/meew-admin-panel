@@ -10,6 +10,12 @@ export interface AppBranding {
   description: string | null;
   display_order: number | null;
   is_active: boolean | null;
+  media_x: number | null;
+  media_y: number | null;
+  media_width: number | null;
+  media_height: number | null;
+  media_opacity: number | null;
+  media_fit: "cover" | "contain" | "fill" | null;
   created_at: string | null;
   updated_at: string | null;
 }
@@ -21,6 +27,12 @@ export interface CreateBrandingParams {
   description?: string;
   display_order?: number;
   is_active?: boolean;
+  media_x?: number;
+  media_y?: number;
+  media_width?: number;
+  media_height?: number;
+  media_opacity?: number;
+  media_fit?: "cover" | "contain" | "fill";
 }
 
 export interface UpdateBrandingParams {
